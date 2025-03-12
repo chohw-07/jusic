@@ -8,23 +8,46 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.3.0/luxon.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-luxon/1.3.1/chartjs-adapter-luxon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary-color: #1565c0;
+      --primary-color: #2962ff;
       --primary-light: #e3f2fd;
-      --primary-dark: #0d47a1;
-      --success-color: #4caf50;
-      --danger-color: #e53935;
-      --warning-color: #ff9800;
+      --primary-dark: #0039cb;
+      --success-color: #00c853;
+      --danger-color: #f44336;
+      --warning-color: #ffc107;
+      --info-color: #29b6f6;
       --background-light: #f8f9fa;
       --background-dark: #263238;
+      --card-bg: #ffffff;
       --text-light: #f5f5f5;
       --text-dark: #212121;
+      --text-muted: #757575;
       --border-color: #e0e0e0;
-      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      --shadow-hover: 0 6px 12px rgba(0, 0, 0, 0.15);
-      --transition: all 0.3s ease;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.06);
+      --shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.1);
+      --shadow-strong: 0 10px 20px rgba(0, 0, 0, 0.15);
+      --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      --border-radius: 12px;
+      --border-radius-sm: 8px;
+    }
+
+    [data-theme="dark"] {
+      --primary-color: #4f83ff;
+      --primary-light: #1e2b3a;
+      --primary-dark: #82b1ff;
+      --background-light: #121212;
+      --background-dark: #000000;
+      --card-bg: #1e1e1e;
+      --text-light: #f5f5f5;
+      --text-dark: #e0e0e0;
+      --text-muted: #9e9e9e;
+      --border-color: #333333;
     }
 
     * {
@@ -34,7 +57,7 @@
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Noto Sans KR', sans-serif;
       background: var(--background-light);
       color: var(--text-dark);
       line-height: 1.6;
@@ -42,16 +65,37 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* 스크롤바 스타일링 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--background-light);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #bdbdbd;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #9e9e9e;
     }
 
     /* 헤더 스타일 */
     header {
       background: var(--primary-color);
       color: var(--text-light);
-      padding: 1rem;
+      padding: 0.8rem 1rem;
       box-shadow: var(--shadow);
       position: relative;
       z-index: 10;
+      transition: var(--transition);
     }
 
     .header-content {
@@ -74,6 +118,29 @@
       margin-right: 8px;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .theme-toggle {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
     .header-stats {
       display: flex;
       gap: 1.5rem;
@@ -81,6 +148,23 @@
 
     .header-stat {
       text-align: right;
+      position: relative;
+      padding: 6px 0;
+    }
+
+    .header-stat::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background-color: var(--text-light);
+      transition: width 0.3s ease;
+    }
+
+    .header-stat:hover::after {
+      width: 100%;
     }
 
     .header-stat-label {
@@ -91,49 +175,107 @@
     .header-stat-value {
       font-size: 1.1rem;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .stat-change {
+      font-size: 0.85rem;
+      border-radius: 4px;
+      padding: 1px 4px;
+    }
+
+    .stat-change.positive {
+      background-color: rgba(0, 200, 83, 0.2);
+      color: var(--success-color);
+    }
+
+    .stat-change.negative {
+      background-color: rgba(244, 67, 54, 0.2);
+      color: var(--danger-color);
     }
 
     /* 뉴스 티커 스타일 */
     .news-ticker-container {
       background: var(--primary-dark);
       color: var(--text-light);
-      padding: 0.5rem 0;
+      padding: 0.6rem 0;
       overflow: hidden;
       position: relative;
       white-space: nowrap;
     }
 
+    .news-ticker-wrapper {
+      overflow: hidden;
+      width: 100%;
+      position: relative;
+    }
+
     .news-ticker {
       display: inline-block;
+      animation: ticker-scroll 30s linear infinite;
       padding-left: 100%;
-      animation: news-ticker-animation 30s linear infinite;
-      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    .news-ticker-2 {
+      display: inline-block;
+      animation: ticker-scroll-2 30s linear infinite;
+      padding-left: 100%;
+      white-space: nowrap;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    @keyframes ticker-scroll-2 {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(0); }
+    }
+
+    .news-ticker-wrapper:hover .news-ticker,
+    .news-ticker-wrapper:hover .news-ticker-2 {
+      animation-play-state: paused;
     }
 
     .news-ticker-item {
       display: inline-block;
       margin-right: 3rem;
+      position: relative;
+      padding: 0 10px;
+      transition: transform 0.2s ease;
+    }
+
+    .news-ticker-item:hover {
+      transform: translateY(-2px);
+    }
+
+    .news-ticker-item:not(:last-child)::after {
+      content: "•";
+      position: absolute;
+      right: -1.5rem;
+      color: rgba(255, 255, 255, 0.5);
     }
 
     .news-ticker-item i {
       margin-right: 0.5rem;
+      vertical-align: middle;
+      font-size: 18px;
     }
 
     .news-ticker-item.positive {
-      color: #a5d6a7;
+      color: #b9f6ca;
     }
 
     .news-ticker-item.negative {
-      color: #ef9a9a;
-    }
-
-    @keyframes news-ticker-animation {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
-
-    .news-ticker:hover {
-      animation-play-state: paused;
+      color: #ffcdd2;
     }
 
     /* 메인 컨테이너 */
@@ -149,39 +291,44 @@
       max-width: 400px;
       min-width: 300px;
       height: 100%;
-      background: #fff;
+      background: var(--card-bg);
       box-shadow: var(--shadow);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       position: relative;
       transition: var(--transition);
+      z-index: 5;
     }
 
     .sidebar-tabs {
       display: flex;
       background: var(--primary-light);
       border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 2;
     }
 
     .sidebar-tab {
       flex: 1;
-      padding: 0.8rem;
+      padding: 1rem 0.8rem;
       text-align: center;
       cursor: pointer;
       font-weight: 600;
       transition: var(--transition);
       border-bottom: 3px solid transparent;
+      color: var(--text-dark);
     }
 
     .sidebar-tab.active {
-      background: #fff;
+      background: var(--card-bg);
       border-bottom-color: var(--primary-color);
       color: var(--primary-color);
     }
 
     .sidebar-tab:hover:not(.active) {
-      background: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.3);
     }
 
     .sidebar-content {
@@ -201,16 +348,51 @@
     /* 포트폴리오 스타일 */
     .portfolio-summary {
       background: var(--primary-light);
-      border-radius: 8px;
+      border-radius: var(--border-radius);
       padding: 1.2rem;
       margin-bottom: 1.5rem;
       box-shadow: var(--shadow);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portfolio-summary:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .portfolio-balance-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
     }
 
     .portfolio-balance {
       font-size: 1.8rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
+      position: relative;
+      display: inline-block;
+    }
+
+    .portfolio-profit {
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+      display: inline-block;
+    }
+
+    .portfolio-profit.positive {
+      background-color: rgba(0, 200, 83, 0.15);
+      color: var(--success-color);
+    }
+
+    .portfolio-profit.negative {
+      background-color: rgba(244, 67, 54, 0.15);
+      color: var(--danger-color);
     }
 
     .portfolio-stats {
@@ -222,10 +404,16 @@
     .portfolio-stat {
       flex: 1;
       text-align: center;
-      background: white;
-      border-radius: 8px;
+      background: var(--card-bg);
+      border-radius: var(--border-radius-sm);
       padding: 0.8rem;
       box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+
+    .portfolio-stat:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
     }
 
     .portfolio-stat-value {
@@ -235,47 +423,103 @@
 
     .portfolio-stat-label {
       font-size: 0.8rem;
-      color: #757575;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* 보유 주식 스타일 */
+    .holdings-section {
+      margin-top: 1.5rem;
+    }
+
+    .holdings-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
     }
 
     .holdings-title {
       font-size: 1.2rem;
-      margin: 1.5rem 0 1rem;
+      font-weight: 600;
       padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 2px solid var(--primary-light);
+    }
+
+    .holdings-filter {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+      transition: var(--transition);
+    }
+
+    .holdings-filter:focus {
+      outline: none;
+      border-color: var(--primary-color);
     }
 
     .holdings-empty {
       text-align: center;
-      padding: 2rem;
-      color: #757575;
+      padding: 3rem 2rem;
+      color: var(--text-muted);
       font-style: italic;
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-inset);
+      border: 1px dashed var(--border-color);
     }
 
     .holding-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.8rem;
-      border-radius: 8px;
+      padding: 1rem;
+      border-radius: var(--border-radius);
       margin-bottom: 0.8rem;
-      background: white;
+      background: var(--card-bg);
       box-shadow: var(--shadow);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .holding-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--primary-color);
+      opacity: 0;
       transition: var(--transition);
     }
 
     .holding-item:hover {
       box-shadow: var(--shadow-hover);
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+    }
+
+    .holding-item:hover::before {
+      opacity: 1;
     }
 
     .holding-info {
       flex: 1;
     }
 
+    .holding-name {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
     .holding-symbol {
       font-size: 0.8rem;
-      color: #757575;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
     }
 
     .holding-stats {
@@ -284,14 +528,91 @@
 
     .holding-shares {
       font-size: 0.9rem;
-      color: #757575;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
     }
 
     .holding-value {
       font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .holding-profit {
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .holding-profit.positive {
+      background-color: rgba(0, 200, 83, 0.15);
+      color: var(--success-color);
+    }
+
+    .holding-profit.negative {
+      background-color: rgba(244, 67, 54, 0.15);
+      color: var(--danger-color);
     }
 
     /* 주식 테이블 스타일 */
+    .market-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .market-search {
+      display: flex;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 0.3rem 0.7rem;
+      transition: var(--transition);
+      width: 100%;
+    }
+
+    .market-search:focus-within {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.1);
+    }
+
+    .market-search i {
+      color: var(--text-muted);
+      margin-right: 0.5rem;
+    }
+
+    .market-search-input {
+      border: none;
+      background: none;
+      flex: 1;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+    }
+
+    .market-search-input:focus {
+      outline: none;
+    }
+
+    .market-sector-filter {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.9rem;
+      color: var(--text-dark);
+      margin-left: 0.5rem;
+      transition: var(--transition);
+    }
+
+    .market-sector-filter:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+
     .stock-table {
       width: 100%;
       border-collapse: separate;
@@ -302,21 +623,25 @@
       padding: 0.8rem;
       text-align: left;
       font-weight: 600;
-      color: #616161;
+      color: var(--text-muted);
       border-bottom: 2px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      z-index: 1;
     }
 
     .stock-table tbody tr {
-      background: white;
+      background: var(--card-bg);
       box-shadow: var(--shadow);
-      border-radius: 8px;
+      border-radius: var(--border-radius-sm);
       transition: var(--transition);
+      cursor: pointer;
     }
 
     .stock-table tbody tr:hover {
-      transform: translateY(-2px);
+      transform: translateY(-3px);
       box-shadow: var(--shadow-hover);
-      cursor: pointer;
     }
 
     .stock-table td {
@@ -324,13 +649,13 @@
     }
 
     .stock-table td:first-child {
-      border-top-left-radius: 8px;
-      border-bottom-left-radius: 8px;
+      border-top-left-radius: var(--border-radius-sm);
+      border-bottom-left-radius: var(--border-radius-sm);
     }
 
     .stock-table td:last-child {
-      border-top-right-radius: 8px;
-      border-bottom-right-radius: 8px;
+      border-top-right-radius: var(--border-radius-sm);
+      border-bottom-right-radius: var(--border-radius-sm);
     }
 
     .stock-name {
@@ -339,7 +664,8 @@
 
     .stock-symbol {
       font-size: 0.8rem;
-      color: #757575;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
     }
 
     .stock-price {
@@ -350,13 +676,20 @@
     .stock-change {
       text-align: right;
       font-weight: 600;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+      min-width: 70px;
+      text-align: center;
     }
 
     .stock-change.positive {
+      background-color: rgba(0, 200, 83, 0.15);
       color: var(--success-color);
     }
 
     .stock-change.negative {
+      background-color: rgba(244, 67, 54, 0.15);
       color: var(--danger-color);
     }
 
@@ -389,7 +722,26 @@
     }
 
     .stock-subtitle {
-      color: #757575;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    .stock-badges {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .stock-badge {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background-color: var(--primary-light);
+      color: var(--primary-dark);
+    }
+
+    .current-price-container {
+      text-align: right;
     }
 
     .current-price {
@@ -403,13 +755,19 @@
       align-items: center;
       justify-content: flex-end;
       font-weight: 600;
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      margin-top: 0.3rem;
+      display: inline-block;
     }
 
     .price-change.positive {
+      background-color: rgba(0, 200, 83, 0.15);
       color: var(--success-color);
     }
 
     .price-change.negative {
+      background-color: rgba(244, 67, 54, 0.15);
       color: var(--danger-color);
     }
 
@@ -417,38 +775,62 @@
       margin-right: 4px;
     }
 
+    .price-time {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
     /* 차트 컨테이너 */
     .chart-container {
       flex: 1;
-      min-height: 300px;
-      background: white;
-      border-radius: 8px;
+      min-height: 350px;
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
       box-shadow: var(--shadow);
       padding: 1.5rem;
       margin-bottom: 1.5rem;
       position: relative;
+      transition: var(--transition);
     }
 
-    .chart-controls {
+    .chart-container:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .chart-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
     }
 
-    .chart-periods {
+    .chart-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .chart-controls {
       display: flex;
-      gap: 0.5rem;
+      gap: 1rem;
+    }
+
+    .chart-control-group {
+      display: flex;
+      background: var(--background-light);
+      border-radius: 20px;
+      overflow: hidden;
     }
 
     .chart-period {
-      padding: 0.4rem 0.8rem;
-      border-radius: 4px;
+      padding: 0.5rem 0.8rem;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 500;
       font-size: 0.9rem;
       transition: var(--transition);
-      background: var(--background-light);
+      border: none;
+      background: none;
+      color: var(--text-dark);
     }
 
     .chart-period.active {
@@ -456,17 +838,18 @@
       color: white;
     }
 
-    .chart-types {
-      display: flex;
-      gap: 0.5rem;
+    .chart-period:not(.active):hover {
+      background: rgba(41, 98, 255, 0.1);
     }
 
     .chart-type {
-      padding: 0.4rem;
+      padding: 0.5rem;
       border-radius: 4px;
       cursor: pointer;
       transition: var(--transition);
       background: var(--background-light);
+      border: none;
+      color: var(--text-dark);
     }
 
     .chart-type.active {
@@ -474,18 +857,73 @@
       color: white;
     }
 
+    .chart-type:not(.active):hover {
+      background: rgba(41, 98, 255, 0.1);
+    }
+
+    .chart-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      z-index: 1;
+    }
+
+    .chart-placeholder i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    .chart-placeholder-text {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+    }
+
+    /* 미니 차트 (스파크라인) */
+    .sparkline {
+      width: 80px;
+      height: 30px;
+      display: inline-block;
+      margin-left: 0.5rem;
+    }
+
     /* 거래 패널 */
     .trade-panel {
-      background: white;
-      border-radius: 8px;
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
       box-shadow: var(--shadow);
       padding: 1.5rem;
+      transition: var(--transition);
+    }
+
+    .trade-panel:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .trade-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .trade-title {
+      font-size: 1.1rem;
+      font-weight: 600;
     }
 
     .trade-tabs {
       display: flex;
       margin-bottom: 1.5rem;
-      border-radius: 8px;
+      border-radius: 20px;
       overflow: hidden;
       background: var(--background-light);
     }
@@ -524,25 +962,97 @@
     .form-label {
       font-weight: 600;
       font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .form-label-hint {
+      font-weight: normal;
+      color: var(--text-muted);
+      font-size: 0.8rem;
     }
 
     .form-input {
       padding: 0.8rem;
       border: 1px solid var(--border-color);
-      border-radius: 4px;
+      border-radius: var(--border-radius-sm);
       font-size: 1rem;
       transition: var(--transition);
+      background: var(--card-bg);
+      color: var(--text-dark);
     }
 
     .form-input:focus {
       outline: none;
       border-color: var(--primary-color);
-      box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);
+      box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.1);
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+    }
+
+    .quantity-control .form-input {
+      flex: 1;
+      text-align: center;
+    }
+
+    .quantity-btn {
+      background: var(--primary-light);
+      border: none;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: var(--border-radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--primary-color);
+    }
+
+    .quantity-btn:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .order-type-container {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .order-type {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.5rem 0.8rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius-sm);
+      cursor: pointer;
+      transition: var(--transition);
+      flex: 1;
+    }
+
+    .order-type.active {
+      border-color: var(--primary-color);
+      background-color: var(--primary-light);
+    }
+
+    .order-type-radio {
+      width: 16px;
+      height: 16px;
+    }
+
+    .order-type-label {
+      font-weight: 500;
+      font-size: 0.9rem;
     }
 
     .trade-summary {
       background: var(--background-light);
-      border-radius: 8px;
+      border-radius: var(--border-radius-sm);
       padding: 1rem;
       margin: 1rem 0;
     }
@@ -551,6 +1061,7 @@
       display: flex;
       justify-content: space-between;
       margin-bottom: 0.5rem;
+      padding: 0.3rem 0;
     }
 
     .summary-row.total {
@@ -563,7 +1074,7 @@
     .trade-button {
       padding: 1rem;
       border: none;
-      border-radius: 8px;
+      border-radius: var(--border-radius-sm);
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
@@ -577,7 +1088,7 @@
     }
 
     .trade-button.buy:hover {
-      background: #388e3c;
+      background: #00a844;
     }
 
     .trade-button.sell {
@@ -586,29 +1097,139 @@
     }
 
     .trade-button.sell:hover {
-      background: #c62828;
+      background: #d32f2f;
+    }
+
+    .trade-button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* 시장 정보 섹션 */
+    .market-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .market-card {
+      flex: 1;
+      min-width: 200px;
+      background: var(--card-bg);
+      border-radius: var(--border-radius-sm);
+      padding: 1.2rem;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+
+    .market-card:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-3px);
+    }
+
+    .market-card-title {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .market-card-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .market-card-change {
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .market-card-change.positive {
+      background-color: rgba(0, 200, 83, 0.15);
+      color: var(--success-color);
+    }
+
+    .market-card-change.negative {
+      background-color: rgba(244, 67, 54, 0.15);
+      color: var(--danger-color);
+    }
+
+    /* 주식 상세 정보 */
+    .stock-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stock-detail-card {
+      flex: 1;
+      min-width: 150px;
+      background: var(--card-bg);
+      border-radius: var(--border-radius-sm);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+
+    .stock-detail-card:hover {
+      box-shadow: var(--shadow-hover);
+    }
+
+    .stock-detail-title {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+
+    .stock-detail-value {
+      font-size: 1.2rem;
+      font-weight: 700;
     }
 
     /* 알림 스타일 */
-    .notification {
+    .notification-container {
       position: fixed;
       bottom: 2rem;
       right: 2rem;
-      padding: 1rem 1.5rem;
-      border-radius: 8px;
-      background: white;
-      color: var(--text-dark);
-      box-shadow: var(--shadow);
-      z-index: 1000;
       display: flex;
-      align-items: center;
-      font-weight: 600;
-      transform: translateY(150%);
-      transition: transform 0.3s ease;
+      flex-direction: column;
+      gap: 1rem;
+      z-index: 1000;
     }
 
-    .notification.show {
-      transform: translateY(0);
+    .notification {
+      padding: 1rem 1.5rem;
+      border-radius: var(--border-radius-sm);
+      background: var(--card-bg);
+      color: var(--text-dark);
+      box-shadow: var(--shadow-strong);
+      display: flex;
+      align-items: center;
+      font-weight: 500;
+      max-width: 400px;
+      position: relative;
+      overflow: hidden;
+      animation: notification-slide-in 0.3s ease forwards;
+    }
+
+    .notification.hiding {
+      animation: notification-slide-out 0.3s ease forwards;
+    }
+
+    @keyframes notification-slide-in {
+      from { transform: translateX(120%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes notification-slide-out {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(120%); opacity: 0; }
     }
 
     .notification i {
@@ -633,15 +1254,54 @@
     }
 
     .notification.info {
-      border-left: 4px solid var(--primary-color);
+      border-left: 4px solid var(--info-color);
     }
 
     .notification.info i {
-      color: var(--primary-color);
+      color: var(--info-color);
+    }
+
+    .notification.warning {
+      border-left: 4px solid var(--warning-color);
+    }
+
+    .notification.warning i {
+      color: var(--warning-color);
+    }
+
+    .notification-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: var(--primary-color);
+      animation: notification-progress 5s linear forwards;
+    }
+
+    @keyframes notification-progress {
+      from { width: 100%; }
+      to { width: 0%; }
+    }
+
+    .notification-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.2rem;
+      transition: var(--transition);
+    }
+
+    .notification-close:hover {
+      color: var(--text-dark);
     }
 
     /* 로더 스타일 */
-    .loader {
+    .loader-overlay {
       position: absolute;
       top: 0;
       left: 0;
@@ -652,15 +1312,29 @@
       justify-content: center;
       align-items: center;
       z-index: 10;
+      backdrop-filter: blur(3px);
+      border-radius: var(--border-radius);
+    }
+
+    .loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
     }
 
     .loader-spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid var(--primary-light);
-      border-top: 4px solid var(--primary-color);
+      border: 3px solid rgba(41, 98, 255, 0.1);
+      border-top: 3px solid var(--primary-color);
       border-radius: 50%;
       animation: spin 1s linear infinite;
+    }
+
+    .loader-text {
+      font-weight: 500;
+      color: var(--text-dark);
     }
 
     @keyframes spin {
@@ -668,7 +1342,39 @@
       100% { transform: rotate(360deg); }
     }
 
+    .shimmer {
+      background: linear-gradient(
+        to right,
+        var(--background-light) 8%,
+        var(--card-bg) 18%,
+        var(--background-light) 33%
+      );
+      background-size: 800px 104px;
+      animation: shimmer 1.5s linear infinite;
+      border-radius: var(--border-radius-sm);
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -468px 0; }
+      100% { background-position: 468px 0; }
+    }
+
+    /* 다크모드 전환 전에 플래시 방지 */
+    .transition-fade {
+      transition: none !important;
+    }
+
     /* 반응형 디자인 */
+    @media (max-width: 1200px) {
+      .stock-details {
+        flex-wrap: wrap;
+      }
+
+      .stock-detail-card {
+        min-width: calc(50% - 0.5rem);
+      }
+    }
+
     @media (max-width: 1024px) {
       .main-container {
         flex-direction: column;
@@ -682,7 +1388,15 @@
       }
 
       .chart-container {
-        min-height: 250px;
+        min-height: 300px;
+      }
+
+      .stock-details {
+        flex-wrap: wrap;
+      }
+
+      .stock-detail-card {
+        min-width: calc(33.33% - 0.67rem);
       }
     }
 
@@ -697,15 +1411,135 @@
         justify-content: space-around;
       }
 
-      .portfolio-stats {
-        flex-direction: column;
-      }
-
-      .chart-controls {
+      .content-header {
         flex-direction: column;
         gap: 1rem;
         align-items: flex-start;
       }
+
+      .current-price-container {
+        width: 100%;
+        text-align: left;
+      }
+
+      .price-change {
+        justify-content: flex-start;
+      }
+
+      .chart-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+
+      .chart-controls {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+
+      .stock-details {
+        flex-direction: column;
+      }
+
+      .stock-detail-card {
+        min-width: 100%;
+      }
+
+      .portfolio-stats {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .header-stats {
+        flex-wrap: wrap;
+      }
+
+      .header-stat {
+        min-width: 50%;
+        margin-bottom: 0.5rem;
+      }
+
+      .sidebar-tabs {
+        flex-wrap: wrap;
+      }
+
+      .sidebar-tab {
+        min-width: 50%;
+      }
+
+      .stock-table th:nth-child(3),
+      .stock-table td:nth-child(3) {
+        display: none;
+      }
+    }
+
+    /* 애니메이션 */
+    .fade-in {
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .slide-in {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .price-flash-up {
+      animation: flashUp 0.5s ease-out;
+    }
+
+    .price-flash-down {
+      animation: flashDown 0.5s ease-out;
+    }
+
+    @keyframes flashUp {
+      0%, 100% { background-color: transparent; }
+      50% { background-color: rgba(0, 200, 83, 0.2); }
+    }
+
+    @keyframes flashDown {
+      0%, 100% { background-color: transparent; }
+      50% { background-color: rgba(244, 67, 54, 0.2); }
+    }
+
+    /* 툴팁 */
+    .tooltip {
+      position: relative;
+    }
+
+    .tooltip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 120%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--background-dark);
+      color: var(--text-light);
+      padding: 0.5rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      z-index: 10;
+    }
+
+    .tooltip:hover::before {
+      content: '';
+      position: absolute;
+      bottom: 110%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--background-dark);
+      z-index: 10;
     }
 
     /* 아이콘 */
@@ -733,26 +1567,36 @@
         <i class="material-icons">trending_up</i>
         주식 모의 트레이딩
       </div>
-      <div class="header-stats">
-        <div class="header-stat">
-          <div class="header-stat-label">KOSPI</div>
-          <div class="header-stat-value" id="kospi-index">2,862.86 <span style="color: #4caf50">+0.75%</span></div>
+      <div class="header-actions">
+        <div class="header-stats">
+          <div class="header-stat">
+            <div class="header-stat-label">KOSPI</div>
+            <div class="header-stat-value" id="kospi-index">2,862.86 <span class="stat-change positive">+0.75%</span></div>
+          </div>
+          <div class="header-stat">
+            <div class="header-stat-label">KOSDAQ</div>
+            <div class="header-stat-value" id="kosdaq-index">946.78 <span class="stat-change negative">-0.32%</span></div>
+          </div>
+          <div class="header-stat">
+            <div class="header-stat-label">USD/KRW</div>
+            <div class="header-stat-value" id="usd-krw">1,356.20 <span class="stat-change positive">+0.15%</span></div>
+          </div>
         </div>
-        <div class="header-stat">
-          <div class="header-stat-label">KOSDAQ</div>
-          <div class="header-stat-value" id="kosdaq-index">946.78 <span style="color: #e53935">-0.32%</span></div>
-        </div>
-        <div class="header-stat">
-          <div class="header-stat-label">USD/KRW</div>
-          <div class="header-stat-value" id="usd-krw">1,356.20 <span style="color: #4caf50">+0.15%</span></div>
-        </div>
+        <button class="theme-toggle" id="themeToggle">
+          <i class="material-icons">dark_mode</i>
+        </button>
       </div>
     </div>
   </header>
 
   <div class="news-ticker-container">
-    <div class="news-ticker" id="newsTicker">
-      <!-- 뉴스 항목들은 자바스크립트로 동적 생성됩니다 -->
+    <div class="news-ticker-wrapper">
+      <div class="news-ticker" id="newsTicker">
+        <!-- 뉴스 항목들은 자바스크립트로 동적 생성됩니다 -->
+      </div>
+      <div class="news-ticker-2" id="newsTicker2">
+        <!-- 자바스크립트로 복사됩니다 -->
+      </div>
     </div>
   </div>
 
@@ -766,8 +1610,9 @@
       <div class="sidebar-content">
         <div class="tab-content active" id="portfolio-tab">
           <div class="portfolio-summary">
+            <div class="portfolio-balance-label">총 자산 평가액</div>
             <div class="portfolio-balance" id="totalBalance">₩1,000,000</div>
-            <div id="totalValue" style="color: #757575">총 자산 평가액</div>
+            <div class="portfolio-profit positive" id="totalProfit">+₩0 (0.00%)</div>
             <div class="portfolio-stats">
               <div class="portfolio-stat">
                 <div class="portfolio-stat-value" id="cashBalance">₩1,000,000</div>
@@ -780,22 +1625,41 @@
             </div>
           </div>
 
-          <h2 class="holdings-title">보유 주식</h2>
-          <div id="holdingsList">
-            <div class="holdings-empty">
-              보유 중인 주식이 없습니다.<br>
-              시장에서 주식을 구매해보세요.
+          <div class="holdings-section">
+            <div class="holdings-header">
+              <h2 class="holdings-title">보유 주식</h2>
+              <select class="holdings-filter" id="holdingsFilter">
+                <option value="all">전체 보기</option>
+                <option value="profit">수익순</option>
+                <option value="value">평가액순</option>
+              </select>
+            </div>
+            <div id="holdingsList">
+              <div class="holdings-empty">
+                보유 중인 주식이 없습니다.<br>
+                시장에서 주식을 구매해보세요.
+              </div>
             </div>
           </div>
         </div>
 
         <div class="tab-content" id="market-tab">
+          <div class="market-header">
+            <div class="market-search">
+              <i class="material-icons">search</i>
+              <input type="text" class="market-search-input" id="marketSearch" placeholder="종목명 또는 코드 검색">
+            </div>
+            <select class="market-sector-filter" id="sectorFilter">
+              <option value="all">전체 업종</option>
+              <!-- 업종 필터는 자바스크립트로 동적 생성됩니다 -->
+            </select>
+          </div>
           <table class="stock-table" id="stocksTable">
             <thead>
               <tr>
                 <th>종목</th>
                 <th>현재가</th>
-                <th>변동</th>
+                <th>변동률</th>
               </tr>
             </thead>
             <tbody>
@@ -807,43 +1671,117 @@
     </div>
 
     <div class="main-content">
+      <div class="market-info">
+        <div class="market-card">
+          <div class="market-card-title">KOSPI</div>
+          <div class="market-card-value">
+            2,862.86
+            <span class="market-card-change positive">+0.75%</span>
+          </div>
+        </div>
+        <div class="market-card">
+          <div class="market-card-title">KOSDAQ</div>
+          <div class="market-card-value">
+            946.78
+            <span class="market-card-change negative">-0.32%</span>
+          </div>
+        </div>
+        <div class="market-card">
+          <div class="market-card-title">USD/KRW</div>
+          <div class="market-card-value">
+            1,356.20
+            <span class="market-card-change positive">+0.15%</span>
+          </div>
+        </div>
+      </div>
+
       <div class="content-header">
         <div class="stock-header">
           <div class="stock-title" id="selectedStockName">종목을 선택하세요</div>
           <div class="stock-subtitle" id="selectedStockSymbol"></div>
+          <div class="stock-badges" id="stockBadges"></div>
         </div>
-        <div class="stock-price-info">
+        <div class="current-price-container">
           <div class="current-price" id="currentPrice">-</div>
           <div class="price-change" id="priceChange"></div>
+          <div class="price-time" id="priceTime"></div>
         </div>
       </div>
 
+      <div class="stock-details" id="stockDetails">
+        <!-- 주식 상세 정보는 자바스크립트로 동적 생성됩니다 -->
+      </div>
+
       <div class="chart-container" id="chartContainer">
-        <div class="chart-controls">
-          <div class="chart-periods">
-            <div class="chart-period active" data-period="day">1일</div>
-            <div class="chart-period" data-period="week">1주</div>
-            <div class="chart-period" data-period="month">1개월</div>
-          </div>
-          <div class="chart-types">
-            <div class="chart-type active" data-type="line" title="라인 차트">
-              <i class="material-icons">show_chart</i>
+        <div class="chart-header">
+          <div class="chart-title">가격 차트</div>
+          <div class="chart-controls">
+            <div class="chart-control-group" id="periodControls">
+              <button class="chart-period active" data-period="day">1일</button>
+              <button class="chart-period" data-period="week">1주</button>
+              <button class="chart-period" data-period="month">1개월</button>
+              <button class="chart-period" data-period="year">1년</button>
+            </div>
+            <div class="chart-control-group" id="typeControls">
+              <button class="chart-type active" data-type="line" title="라인 차트">
+                <i class="material-icons">show_chart</i>
+              </button>
+              <button class="chart-type" data-type="candle" title="캔들스틱 차트">
+                <i class="material-icons">bar_chart</i>
+              </button>
             </div>
           </div>
         </div>
         <canvas id="stockChart"></canvas>
+        <div class="chart-placeholder" id="chartPlaceholder">
+          <i class="material-icons">insert_chart</i>
+          <div class="chart-placeholder-text">종목을 선택하면 차트가 표시됩니다</div>
+        </div>
       </div>
 
       <div class="trade-panel">
+        <div class="trade-header">
+          <div class="trade-title">주문하기</div>
+        </div>
         <div class="trade-tabs">
           <div class="trade-tab buy active" data-trade="buy">매수</div>
           <div class="trade-tab sell" data-trade="sell">매도</div>
         </div>
 
         <div class="trade-form">
+          <div class="order-type-container">
+            <div class="order-type active" data-order-type="market">
+              <input type="radio" name="orderType" id="marketOrder" class="order-type-radio" checked>
+              <label for="marketOrder" class="order-type-label">시장가</label>
+            </div>
+            <div class="order-type" data-order-type="limit">
+              <input type="radio" name="orderType" id="limitOrder" class="order-type-radio">
+              <label for="limitOrder" class="order-type-label">지정가</label>
+            </div>
+          </div>
+
+          <div class="form-group" id="limitPriceGroup" style="display: none;">
+            <label class="form-label">
+              주문 가격
+              <span class="form-label-hint" id="currentMarketPrice"></span>
+            </label>
+            <input type="number" class="form-input" id="limitPrice" placeholder="가격 입력" min="1">
+          </div>
+
           <div class="form-group">
-            <label class="form-label">거래 수량</label>
-            <input type="number" class="form-input" id="tradeQuantity" placeholder="수량 입력" min="1" value="1">
+            <label class="form-label">
+              주문 수량
+              <span class="form-label-hint" id="maxQuantity"></span>
+            </label>
+            <div class="quantity-control">
+              <button class="quantity-btn" id="decreaseQuantity">
+                <i class="material-icons">remove</i>
+              </button>
+              <input type="number" class="form-input" id="tradeQuantity" placeholder="수량 입력" min="1" value="1">
+              <button class="quantity-btn" id="increaseQuantity">
+                <i class="material-icons">add</i>
+              </button>
+            </div>
           </div>
 
           <div class="trade-summary" id="tradeSummary">
@@ -854,6 +1792,10 @@
             <div class="summary-row">
               <div>주문 수량:</div>
               <div id="orderQuantity">-</div>
+            </div>
+            <div class="summary-row">
+              <div>수수료 (0.15%):</div>
+              <div id="orderFee">-</div>
             </div>
             <div class="summary-row total">
               <div>총 금액:</div>
@@ -867,101 +1809,195 @@
     </div>
   </div>
 
-  <div class="notification" id="notification">
-    <i class="material-icons" id="notificationIcon">info</i>
-    <span id="notificationText">알림 메시지</span>
+  <div class="notification-container" id="notificationContainer">
+    <!-- 알림은 자바스크립트로 동적 생성됩니다 -->
   </div>
 
   <script>
     // ======================================================
-    // 1. 주요 변수 및 상태 설정
+    // 1. 초기화 및 테마 설정
+    // ======================================================
+    
+    // 다크 모드 설정
+    function initTheme() {
+      // 저장된 테마 확인
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      
+      const themeToggle = document.getElementById('themeToggle');
+      themeToggle.innerHTML = `<i class="material-icons">${savedTheme === 'light' ? 'dark_mode' : 'light_mode'}</i>`;
+      
+      // 테마 변경 이벤트
+      themeToggle.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        // 전환 플래시 방지
+        document.body.classList.add('transition-fade');
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        themeToggle.innerHTML = `<i class="material-icons">${newTheme === 'light' ? 'dark_mode' : 'light_mode'}</i>`;
+        
+        setTimeout(() => {
+          document.body.classList.remove('transition-fade');
+        }, 100);
+      });
+    }
+    
+    // 포맷팅 함수
+    const formatCurrency = (value) => {
+      return new Intl.NumberFormat('ko-KR').format(value);
+    };
+    
+    const formatPercentage = (value) => {
+      return new Intl.NumberFormat('ko-KR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      }).format(value);
+    };
+    
+    const formatDateTime = (date) => {
+      return new Intl.DateTimeFormat('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(date);
+    };
+    
+    const formatTimeOnly = (date) => {
+      return new Intl.DateTimeFormat('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(date);
+    };
+    
+    // ======================================================
+    // 2. 주요 변수 및 상태 설정
     // ======================================================
     
     // 포트폴리오 상태
     const portfolio = {
       cash: 1000000,  // 초기 현금 100만원
+      initialCash: 1000000,  // 초기 투자금액
       holdings: {},   // 보유 주식 (예: { 'symbol': { quantity: 10, avgPrice: 50000 } })
-      transactions: [] // 거래 내역
+      transactions: [], // 거래 내역
+      watchlist: []   // 관심 종목
     };
 
     // 차트 상태
     let selectedStock = null;  // 현재 선택된 주식
     let stockChart = null;     // 차트 객체
-    let chartType = 'line';    // 차트 타입 (라인)
-    let chartPeriod = 'day';   // 차트 기간 (1일, 1주, 1개월)
+    let chartType = 'line';    // 차트 타입 (라인, 캔들스틱)
+    let chartPeriod = 'day';   // 차트 기간 (1일, 1주, 1개월, 1년)
     
     // 거래 패널 상태
     let tradeType = 'buy';     // 거래 유형 (buy 또는 sell)
-
+    let orderType = 'market';  // 주문 유형 (market 또는 limit)
+    
     // 시뮬레이션 설정
     const SIMULATION_INTERVAL = 1000;  // 시뮬레이션 간격 (1초)
-    const MAX_HISTORY = 500;          // 최대 기록 저장 개수
+    const MAX_HISTORY = 1000;          // 최대 기록 저장 개수
     const PRICE_VOLATILITY = 0.008;    // 가격 변동성 (0.8%)
+    const TRANSACTION_FEE = 0.0015;    // 거래 수수료 (0.15%)
+    
+    // 차트 색상 설정
+    const chartColors = {
+      line: {
+        borderColor: 'rgba(41, 98, 255, 1)',
+        backgroundColor: 'rgba(41, 98, 255, 0.1)',
+        pointBorderColor: 'rgba(41, 98, 255, 1)',
+        pointBackgroundColor: '#fff'
+      },
+      candle: {
+        up: {
+          borderColor: 'rgba(0, 200, 83, 1)',
+          backgroundColor: 'rgba(0, 200, 83, 0.1)'
+        },
+        down: {
+          borderColor: 'rgba(244, 67, 54, 1)',
+          backgroundColor: 'rgba(244, 67, 54, 0.1)'
+        }
+      }
+    };
     
     // ======================================================
-    // 2. 주식 데이터 정의
+    // 3. 주식 데이터 정의
     // ======================================================
     
     // 대기업 리스트
     const largeCompanies = [
-      { symbol: '005930', name: '삼성전자', sector: '전자' },
-      { symbol: '000660', name: 'SK하이닉스', sector: '반도체' },
-      { symbol: '035420', name: 'NAVER', sector: 'IT 서비스' },
-      { symbol: '051910', name: 'LG화학', sector: '화학' },
-      { symbol: '005380', name: '현대자동차', sector: '자동차' },
-      { symbol: '006400', name: '삼성SDI', sector: '전자부품' },
-      { symbol: '012330', name: '현대모비스', sector: '자동차부품' },
-      { symbol: '035720', name: '카카오', sector: 'IT 서비스' },
-      { symbol: '066570', name: 'LG전자', sector: '전자' },
-      { symbol: '005490', name: 'POSCO홀딩스', sector: '철강' },
-      { symbol: '000270', name: '기아', sector: '자동차' },
-      { symbol: '055550', name: '신한지주', sector: '금융' },
-      { symbol: '105560', name: 'KB금융', sector: '금융' },
-      { symbol: '051900', name: 'LG생활건강', sector: '생활용품' },
-      { symbol: '097950', name: 'CJ제일제당', sector: '식품' },
-      { symbol: '012450', name: '한화에어로스페이스', sector: '방위산업' },
-      { symbol: '034020', name: '두산에너빌리티', sector: '기계' },
-      { symbol: '090430', name: '아모레퍼시픽', sector: '화장품' },
-      { symbol: '011170', name: '롯데케미칼', sector: '화학' },
-      { symbol: '000720', name: 'HD현대건설', sector: '건설' }
+      { symbol: '005930', name: '삼성전자', sector: '전자', marketCap: 4530000000000, pe: 18.2, pbr: 1.4, eps: 2839, bps: 35270, dividendYield: 1.82 },
+      { symbol: '000660', name: 'SK하이닉스', sector: '반도체', marketCap: 980000000000, pe: 32.4, pbr: 1.8, eps: 3245, bps: 65780, dividendYield: 0.9 },
+      { symbol: '035420', name: 'NAVER', sector: 'IT 서비스', marketCap: 450000000000, pe: 29.8, pbr: 3.2, eps: 7320, bps: 74560, dividendYield: 0.4 },
+      { symbol: '051910', name: 'LG화학', sector: '화학', marketCap: 380000000000, pe: 22.5, pbr: 2.1, eps: 3560, bps: 42980, dividendYield: 1.1 },
+      { symbol: '005380', name: '현대자동차', sector: '자동차', marketCap: 420000000000, pe: 14.8, pbr: 1.2, eps: 5690, bps: 67450, dividendYield: 2.2 },
+      { symbol: '006400', name: '삼성SDI', sector: '전자부품', marketCap: 350000000000, pe: 38.6, pbr: 3.5, eps: 4560, bps: 85680, dividendYield: 0.3 },
+      { symbol: '012330', name: '현대모비스', sector: '자동차부품', marketCap: 270000000000, pe: 16.2, pbr: 1.3, eps: 4890, bps: 62340, dividendYield: 2.4 },
+      { symbol: '035720', name: '카카오', sector: 'IT 서비스', marketCap: 240000000000, pe: 27.4, pbr: 2.8, eps: 2350, bps: 56780, dividendYield: 0.2 },
+      { symbol: '066570', name: 'LG전자', sector: '전자', marketCap: 310000000000, pe: 12.6, pbr: 1.1, eps: 7860, bps: 89750, dividendYield: 1.9 },
+      { symbol: '005490', name: 'POSCO홀딩스', sector: '철강', marketCap: 290000000000, pe: 11.2, pbr: 0.9, eps: 8760, bps: 95680, dividendYield: 2.3 },
+      { symbol: '000270', name: '기아', sector: '자동차', marketCap: 330000000000, pe: 13.5, pbr: 1.1, eps: 6320, bps: 74560, dividendYield: 2.5 },
+      { symbol: '055550', name: '신한지주', sector: '금융', marketCap: 240000000000, pe: 9.8, pbr: 0.8, eps: 3560, bps: 45670, dividendYield: 3.2 },
+      { symbol: '105560', name: 'KB금융', sector: '금융', marketCap: 230000000000, pe: 9.4, pbr: 0.8, eps: 4580, bps: 47890, dividendYield: 3.5 },
+      { symbol: '051900', name: 'LG생활건강', sector: '생활용품', marketCap: 180000000000, pe: 26.8, pbr: 4.6, eps: 2980, bps: 36780, dividendYield: 0.8 },
+      { symbol: '097950', name: 'CJ제일제당', sector: '식품', marketCap: 150000000000, pe: 18.5, pbr: 1.6, eps: 1980, bps: 25670, dividendYield: 1.7 },
+      { symbol: '012450', name: '한화에어로스페이스', sector: '방위산업', marketCap: 120000000000, pe: 24.6, pbr: 1.9, eps: 1450, bps: 19870, dividendYield: 0.9 },
+      { symbol: '034020', name: '두산에너빌리티', sector: '기계', marketCap: 140000000000, pe: 15.8, pbr: 1.2, eps: 2650, bps: 32450, dividendYield: 1.5 },
+      { symbol: '090430', name: '아모레퍼시픽', sector: '화장품', marketCap: 130000000000, pe: 32.5, pbr: 2.8, eps: 1250, bps: 15670, dividendYield: 0.7 },
+      { symbol: '011170', name: '롯데케미칼', sector: '화학', marketCap: 120000000000, pe: 14.2, pbr: 0.9, eps: 5680, bps: 67890, dividendYield: 2.1 },
+      { symbol: '000720', name: 'HD현대건설', sector: '건설', marketCap: 110000000000, pe: 11.5, pbr: 0.8, eps: 3450, bps: 47890, dividendYield: 2.6 }
     ];
     
-    // 중소기업 및 중견기업 리스트 (추가)
+    // 중소기업 및 중견기업 리스트
     const smallMediumCompanies = [
-      { symbol: '060980', name: '웹젠', sector: '게임' },
-      { symbol: '078340', name: '컴투스', sector: '게임' },
-      { symbol: '036490', name: '미래에셋생명', sector: '보험' },
-      { symbol: '065350', name: '신성델타테크', sector: '기계' },
-      { symbol: '085670', name: '에스티팜', sector: '제약' },
-      { symbol: '161390', name: '한국타이어앤테크놀로지', sector: '자동차부품' },
-      { symbol: '214320', name: '이노션', sector: '광고' },
-      { symbol: '183490', name: '엔에이치엔', sector: 'IT 서비스' },
-      { symbol: '066970', name: '엘앤에프', sector: '2차전지' },
-      { symbol: '096770', name: 'SK이노베이션', sector: '에너지' },
-      { symbol: '058470', name: '리노공업', sector: '반도체' },
-      { symbol: '009240', name: '한샘', sector: '가구' },
-      { symbol: '009150', name: '삼성전기', sector: '전자부품' },
-      { symbol: '271560', name: '오리온', sector: '식품' },
-      { symbol: '005290', name: '동진쎄미켐', sector: '화학' },
-      { symbol: '145020', name: '휴젤', sector: '바이오' },
-      { symbol: '008930', name: '한미사이언스', sector: '제약' },
-      { symbol: '329180', name: '현대중공업', sector: '조선' },
-      { symbol: '128940', name: '한미약품', sector: '제약' },
-      { symbol: '090460', name: '아세아텍', sector: '기계' },
-      { symbol: '005810', name: '풍산홀딩스', sector: '지주회사' },
-      { symbol: '114090', name: 'GKL', sector: '레저' },
-      { symbol: '060250', name: 'NHN', sector: 'IT 서비스' },
-      { symbol: '067160', name: '아프리카TV', sector: '미디어' },
-      { symbol: '005830', name: 'DB손해보험', sector: '보험' },
-      { symbol: '006360', name: 'GS건설', sector: '건설' },
-      { symbol: '041510', name: '에스엠', sector: '엔터테인먼트' },
-      { symbol: '001060', name: 'JW중외제약', sector: '제약' },
-      { symbol: '094940', name: '케이티알파', sector: '통신장비' },
-      { symbol: '033780', name: 'KT&G', sector: '담배' }
+      { symbol: '060980', name: '웹젠', sector: '게임', marketCap: 65000000000, pe: 22.4, pbr: 1.8, eps: 890, bps: 12340, dividendYield: 0.8 },
+      { symbol: '078340', name: '컴투스', sector: '게임', marketCap: 85000000000, pe: 24.6, pbr: 2.1, eps: 1240, bps: 15670, dividendYield: 0.7 },
+      { symbol: '036490', name: '미래에셋생명', sector: '보험', marketCap: 92000000000, pe: 10.2, pbr: 0.8, eps: 2350, bps: 29870, dividendYield: 2.8 },
+      { symbol: '065350', name: '신성델타테크', sector: '기계', marketCap: 32000000000, pe: 18.5, pbr: 1.6, eps: 780, bps: 9450, dividendYield: 1.3 },
+      { symbol: '085670', name: '에스티팜', sector: '제약', marketCap: 78000000000, pe: 35.6, pbr: 3.2, eps: 650, bps: 8790, dividendYield: 0.5 },
+      { symbol: '161390', name: '한국타이어앤테크놀로지', sector: '자동차부품', marketCap: 105000000000, pe: 16.8, pbr: 1.4, eps: 1780, bps: 21450, dividendYield: 1.8 },
+      { symbol: '214320', name: '이노션', sector: '광고', marketCap: 56000000000, pe: 19.2, pbr: 1.7, eps: 1120, bps: 14560, dividendYield: 1.4 },
+      { symbol: '183490', name: '엔에이치엔', sector: 'IT 서비스', marketCap: 72000000000, pe: 23.5, pbr: 2.2, eps: 980, bps: 12350, dividendYield: 0.6 },
+      { symbol: '066970', name: '엘앤에프', sector: '2차전지', marketCap: 89000000000, pe: 34.2, pbr: 3.6, eps: 870, bps: 10450, dividendYield: 0.4 },
+      { symbol: '096770', name: 'SK이노베이션', sector: '에너지', marketCap: 125000000000, pe: 15.6, pbr: 1.3, eps: 4560, bps: 56780, dividendYield: 1.7 },
+      { symbol: '058470', name: '리노공업', sector: '반도체', marketCap: 48000000000, pe: 26.8, pbr: 2.4, eps: 680, bps: 7890, dividendYield: 0.9 },
+      { symbol: '009240', name: '한샘', sector: '가구', marketCap: 45000000000, pe: 18.4, pbr: 1.6, eps: 1260, bps: 15670, dividendYield: 1.5 },
+      { symbol: '009150', name: '삼성전기', sector: '전자부품', marketCap: 115000000000, pe: 22.5, pbr: 1.9, eps: 2450, bps: 32450, dividendYield: 1.2 },
+      { symbol: '271560', name: '오리온', sector: '식품', marketCap: 95000000000, pe: 21.4, pbr: 2.8, eps: 1780, bps: 19870, dividendYield: 1.1 },
+      { symbol: '005290', name: '동진쎄미켐', sector: '화학', marketCap: 52000000000, pe: 28.6, pbr: 2.5, eps: 680, bps: 8790, dividendYield: 0.6 },
+      { symbol: '145020', name: '휴젤', sector: '바이오', marketCap: 68000000000, pe: 38.5, pbr: 3.8, eps: 560, bps: 7890, dividendYield: 0.3 },
+      { symbol: '008930', name: '한미사이언스', sector: '제약', marketCap: 72000000000, pe: 32.4, pbr: 2.9, eps: 780, bps: 9450, dividendYield: 0.5 },
+      { symbol: '329180', name: '현대중공업', sector: '조선', marketCap: 105000000000, pe: 14.6, pbr: 1.2, eps: 3450, bps: 42980, dividendYield: 1.7 },
+      { symbol: '128940', name: '한미약품', sector: '제약', marketCap: 78000000000, pe: 36.8, pbr: 3.2, eps: 680, bps: 8790, dividendYield: 0.4 },
+      { symbol: '090460', name: '아세아텍', sector: '기계', marketCap: 41000000000, pe: 19.6, pbr: 1.7, eps: 780, bps: 9870, dividendYield: 1.3 },
+      { symbol: '005810', name: '풍산홀딩스', sector: '지주회사', marketCap: 38000000000, pe: 12.4, pbr: 0.9, eps: 1560, bps: 19870, dividendYield: 2.2 },
+      { symbol: '114090', name: 'GKL', sector: '레저', marketCap: 36000000000, pe: 16.8, pbr: 1.4, eps: 1120, bps: 14560, dividendYield: 1.8 },
+      { symbol: '060250', name: 'NHN', sector: 'IT 서비스', marketCap: 54000000000, pe: 24.5, pbr: 2.3, eps: 860, bps: 10450, dividendYield: 0.5 },
+      { symbol: '067160', name: '아프리카TV', sector: '미디어', marketCap: 48000000000, pe: 26.8, pbr: 2.6, eps: 760, bps: 9870, dividendYield: 0.6 },
+      { symbol: '005830', name: 'DB손해보험', sector: '보험', marketCap: 65000000000, pe: 10.8, pbr: 0.9, eps: 2840, bps: 32450, dividendYield: 2.6 },
+      { symbol: '006360', name: 'GS건설', sector: '건설', marketCap: 46000000000, pe: 12.6, pbr: 0.8, eps: 1680, bps: 21450, dividendYield: 2.4 },
+      { symbol: '041510', name: '에스엠', sector: '엔터테인먼트', marketCap: 42000000000, pe: 28.5, pbr: 2.7, eps: 580, bps: 7890, dividendYield: 0.4 },
+      { symbol: '001060', name: 'JW중외제약', sector: '제약', marketCap: 35000000000, pe: 29.6, pbr: 2.5, eps: 680, bps: 8790, dividendYield: 0.5 },
+      { symbol: '094940', name: '케이티알파', sector: '통신장비', marketCap: 32000000000, pe: 18.6, pbr: 1.6, eps: 760, bps: 9450, dividendYield: 1.2 },
+      { symbol: '033780', name: 'KT&G', sector: '담배', marketCap: 125000000000, pe: 12.8, pbr: 1.6, eps: 5680, bps: 45670, dividendYield: 3.1 }
     ];
     
     // 모든 기업 합치기
     const companies = [...largeCompanies, ...smallMediumCompanies];
+    
+    // 업종 목록 생성
+    function extractSectors() {
+      const sectors = new Set();
+      companies.forEach(company => sectors.add(company.sector));
+      return Array.from(sectors).sort();
+    }
     
     // 주식 초기 데이터 생성 함수
     function generateInitialStockData(companies) {
@@ -1008,50 +2044,125 @@
           basePrice = Math.max(5000, Math.floor(basePrice * 0.6)); // 대기업의 60% 수준
         }
         
-        // 하루치의 거래 데이터 미리 생성 (60개 - 분당 데이터로 가정)
-        const history = [];
-        let price = basePrice;
+        // 더 긴 거래 내역 생성 (1년치)
+        const history = generateHistoricalData(basePrice, now, company.sector);
         
-        // 과거 60분의 데이터 생성
-        for (let i = 60; i >= 0; i--) {
-          const time = new Date(now.getTime() - i * 60000); // i분 전
-          const change = (Math.random() - 0.5) * 0.02; // -1%~+1% 변동
-          
-          const open = price;
-          price = Math.max(100, Math.round(price * (1 + change)));
-          const high = Math.max(open, price) * (1 + Math.random() * 0.005);
-          const low = Math.min(open, price) * (1 - Math.random() * 0.005);
-          const close = price;
-          
-          history.push({
-            time: time,
-            open: open,
-            high: high,
-            low: low,
-            close: close,
-            volume: Math.floor(Math.random() * 10000) + 5000
-          });
-        }
+        // 주식 상세 정보 추가
+        const currentPrice = history[history.length - 1].close;
         
         return {
           symbol: company.symbol,
           name: company.name,
           sector: company.sector,
-          currentPrice: price,
-          prevClose: basePrice, // 전일 종가
-          dayHigh: Math.max(...history.map(h => h.high)),
-          dayLow: Math.min(...history.map(h => h.low)),
+          currentPrice: currentPrice,
+          prevClose: history[history.length - 2].close, // 전일 종가
+          dayHigh: Math.max(...history.slice(-24).map(h => h.high)),
+          dayLow: Math.min(...history.slice(-24).map(h => h.low)),
+          marketCap: company.marketCap,
+          pe: company.pe,
+          pbr: company.pbr,
+          eps: company.eps,
+          bps: company.bps,
+          dividendYield: company.dividendYield,
+          week52High: Math.max(...history.map(h => h.high)),
+          week52Low: Math.min(...history.map(h => h.low)),
+          volume: Math.floor(Math.random() * 1000000) + 100000,
+          avgVolume: Math.floor(Math.random() * 1000000) + 100000,
           history: history,
           news: []
         };
       });
+    }
+    
+    // 1년치 역사적 데이터 생성
+    function generateHistoricalData(basePrice, currentDate, sector) {
+      const history = [];
+      let price = basePrice;
+      
+      // 섹터별 트렌드 설정
+      let sectorTrend = 0;
+      switch(sector) {
+        case '반도체':
+        case '2차전지':
+        case 'IT 서비스':
+          sectorTrend = 0.0001; // 상승 트렌드
+          break;
+        case '건설':
+        case '화학':
+          sectorTrend = -0.0001; // 하락 트렌드
+          break;
+        default:
+          sectorTrend = 0; // 중립
+      }
+      
+      // 1년치 데이터 (365일 * 24시간)
+      const startDate = new Date(currentDate.getTime() - 365 * 24 * 60 * 60 * 1000);
+      
+      // 시간별 데이터 생성
+      for (let i = 0; i < 365 * 24; i++) {
+        const time = new Date(startDate.getTime() + i * 60 * 60 * 1000);
+        
+        // 시간에 따른 활동성 조정 (장 시간에 변동성 증가)
+        let activityMultiplier = 0.5;
+        const hour = time.getHours();
+        const day = time.getDay();
+        
+        // 주말은 변동성 낮음
+        if (day === 0 || day === 6) {
+          activityMultiplier = 0.1;
+        } 
+        // 장 시간 (9시~15시)에 변동성 높음
+        else if (hour >= 9 && hour <= 15) {
+          activityMultiplier = 1.0;
+          
+          // 장 시작과 마감 시간에 변동성 가장 높음
+          if (hour === 9 || hour === 15) {
+            activityMultiplier = 1.5;
+          }
+        }
+        
+        // 계절적 요인 - 분기 실적 발표 시즌에 변동성 증가
+        const month = time.getMonth();
+        if (month === 0 || month === 3 || month === 6 || month === 9) {
+          activityMultiplier *= 1.2;
+        }
+        
+        // 랜덤 변동 + 섹터 트렌드 + 계절성
+        const baseChange = (Math.random() - 0.5) * 0.015 * activityMultiplier;
+        const seasonalFactor = Math.sin(Math.PI * 2 * i / (365 * 24)) * 0.002;
+        const totalChange = baseChange + sectorTrend + seasonalFactor;
+        
+        // 가격 업데이트 (최소 100원)
+        const open = price;
+        price = Math.max(100, price * (1 + totalChange));
+        
+        // 일중 고가/저가 설정
+        const volatility = 0.01 * activityMultiplier;
+        const high = Math.max(open, price) * (1 + Math.random() * volatility);
+        const low = Math.min(open, price) * (1 - Math.random() * volatility);
+        const close = price;
+        
+        // 거래량은 변동성과 활동성에 비례
+        const volume = Math.floor((Math.random() * 10000 + 5000) * activityMultiplier);
+        
+        history.push({
+          time: time,
+          open: open,
+          high: high,
+          low: low,
+          close: close,
+          volume: volume
+        });
+      }
+      
+      return history;
     }
 
     // 주식 데이터 생성
     const stocks = generateInitialStockData(companies);
     
     // ======================================================
-    // 3. 뉴스 데이터 및 이벤트 정의
+    // 4. 뉴스 데이터 및 이벤트 정의
     // ======================================================
     
     // 뉴스 이벤트 데이터 (대기업 관련)
