@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>주식 모의 사이트 - 프리미엄</title>
+  <!-- 필요한 라이브러리 로드 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.3.0/luxon.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-luxon/1.3.1/chartjs-adapter-luxon.min.js"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #1565c0;
+      --primary-light: #e3f2fd;
+      --primary-dark: #0d47a1;
+      --success-color: #4caf50;
+      --danger-color: #e53935;
+      --warning-color: #ff9800;
+      --background-light: #f8f9fa;
+      --background-dark: #263238;
+      --text-light: #f5f5f5;
+      --text-dark: #212121;
+      --border-color: #e0e0e0;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --shadow-hover: 0 6px 12px rgba(0, 0, 0, 0.15);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--background-light);
+      color: var(--text-dark);
+      line-height: 1.6;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* 헤더 스타일 */
+    header {
+      background: var(--primary-color);
+      color: var(--text-light);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 10;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .logo {
+      font-size: 1.6rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+    }
+
+    .logo i {
+      margin-right: 8px;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .header-stat {
+      text-align: right;
+    }
+
+    .header-stat-label {
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+
+    .header-stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* 뉴스 티커 스타일 */
+    .news-ticker-container {
+      background: var(--primary-dark);
+      color: var(--text-light);
+      padding: 0.5rem 0;
+      overflow: hidden;
+      position: relative;
+      white-space: nowrap;
+    }
+
+    .news-ticker {
+      display: inline-block;
+      padding-left: 100%;
+      animation: news-ticker-animation 30s linear infinite;
+      font-size: 0.95rem;
+    }
+
+    .news-ticker-item {
+      display: inline-block;
+      margin-right: 3rem;
+    }
+
+    .news-ticker-item i {
+      margin-right: 0.5rem;
+    }
+
+    .news-ticker-item.positive {
+      color: #a5d6a7;
+    }
+
+    .news-ticker-item.negative {
+      color: #ef9a9a;
+    }
+
+    @keyframes news-ticker-animation {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    .news-ticker:hover {
+      animation-play-state: paused;
+    }
+
+    /* 메인 컨테이너 */
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* 사이드바 스타일 */
+    .sidebar {
+      width: 30%;
+      max-width: 400px;
+      min-width: 300px;
+      height: 100%;
+      background: #fff;
+      box-shadow: var(--shadow);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: var(--transition);
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      background: var(--primary-light);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 0.8rem;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition);
+      border-bottom: 3px solid transparent;
+    }
+
+    .sidebar-tab.active {
+      background: #fff;
+      border-bottom-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .sidebar-tab:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* 포트폴리오 스타일 */
+    .portfolio-summary {
+      background: var(--primary-light);
+      border-radius: 8px;
+      padding: 1.2rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    .portfolio-balance {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .portfolio-stats {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .portfolio-stat {
+      flex: 1;
+      text-align: center;
+      background: white;
+      border-radius: 8px;
+      padding: 0.8rem;
+      box-shadow: var(--shadow);
+    }
+
+    .portfolio-stat-value {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+
+    .portfolio-stat-label {
+      font-size: 0.8rem;
+      color: #757575;
+    }
+
+    .holdings-title {
+      font-size: 1.2rem;
+      margin: 1.5rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .holdings-empty {
+      text-align: center;
+      padding: 2rem;
+      color: #757575;
+      font-style: italic;
+    }
+
+    .holding-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.8rem;
+      border-radius: 8px;
+      margin-bottom: 0.8rem;
+      background: white;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+
+    .holding-item:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .holding-info {
+      flex: 1;
+    }
+
+    .holding-symbol {
+      font-size: 0.8rem;
+      color: #757575;
+    }
+
+    .holding-stats {
+      text-align: right;
+    }
+
+    .holding-shares {
+      font-size: 0.9rem;
+      color: #757575;
+    }
+
+    .holding-value {
+      font-weight: 600;
+    }
+
+    /* 주식 테이블 스타일 */
+    .stock-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 0.5rem;
+    }
+
+    .stock-table th {
+      padding: 0.8rem;
+      text-align: left;
+      font-weight: 600;
+      color: #616161;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .stock-table tbody tr {
+      background: white;
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      transition: var(--transition);
+    }
+
+    .stock-table tbody tr:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+      cursor: pointer;
+    }
+
+    .stock-table td {
+      padding: 1rem 0.8rem;
+    }
+
+    .stock-table td:first-child {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+    }
+
+    .stock-table td:last-child {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .stock-name {
+      font-weight: 600;
+    }
+
+    .stock-symbol {
+      font-size: 0.8rem;
+      color: #757575;
+    }
+
+    .stock-price {
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .stock-change {
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .stock-change.positive {
+      color: var(--success-color);
+    }
+
+    .stock-change.negative {
+      color: var(--danger-color);
+    }
+
+    /* 메인 콘텐츠 영역 */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .stock-header {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stock-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+    }
+
+    .stock-subtitle {
+      color: #757575;
+    }
+
+    .current-price {
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .price-change {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      font-weight: 600;
+    }
+
+    .price-change.positive {
+      color: var(--success-color);
+    }
+
+    .price-change.negative {
+      color: var(--danger-color);
+    }
+
+    .price-change i {
+      margin-right: 4px;
+    }
+
+    /* 차트 컨테이너 */
+    .chart-container {
+      flex: 1;
+      min-height: 300px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .chart-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .chart-periods {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chart-period {
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: var(--transition);
+      background: var(--background-light);
+    }
+
+    .chart-period.active {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .chart-types {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chart-type {
+      padding: 0.4rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--background-light);
+    }
+
+    .chart-type.active {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    /* 거래 패널 */
+    .trade-panel {
+      background: white;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+    }
+
+    .trade-tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--background-light);
+    }
+
+    .trade-tab {
+      flex: 1;
+      text-align: center;
+      padding: 0.8rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .trade-tab.buy.active {
+      background: var(--success-color);
+      color: white;
+    }
+
+    .trade-tab.sell.active {
+      background: var(--danger-color);
+      color: white;
+    }
+
+    .trade-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .form-input {
+      padding: 0.8rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.2);
+    }
+
+    .trade-summary {
+      background: var(--background-light);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .summary-row.total {
+      font-weight: 700;
+      padding-top: 0.5rem;
+      margin-top: 0.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .trade-button {
+      padding: 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+    }
+
+    .trade-button.buy {
+      background: var(--success-color);
+      color: white;
+    }
+
+    .trade-button.buy:hover {
+      background: #388e3c;
+    }
+
+    .trade-button.sell {
+      background: var(--danger-color);
+      color: white;
+    }
+
+    .trade-button.sell:hover {
+      background: #c62828;
+    }
+
+    /* 알림 스타일 */
+    .notification {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      background: white;
+      color: var(--text-dark);
+      box-shadow: var(--shadow);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      font-weight: 600;
+      transform: translateY(150%);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateY(0);
+    }
+
+    .notification i {
+      margin-right: 0.8rem;
+      font-size: 1.5rem;
+    }
+
+    .notification.success {
+      border-left: 4px solid var(--success-color);
+    }
+
+    .notification.success i {
+      color: var(--success-color);
+    }
+
+    .notification.error {
+      border-left: 4px solid var(--danger-color);
+    }
+
+    .notification.error i {
+      color: var(--danger-color);
+    }
+
+    .notification.info {
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .notification.info i {
+      color: var(--primary-color);
+    }
+
+    /* 로더 스타일 */
+    .loader {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .loader-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--primary-light);
+      border-top: 4px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 1024px) {
+      .main-container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        max-width: none;
+        height: auto;
+        max-height: 50vh;
+      }
+
+      .chart-container {
+        min-height: 250px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .header-stats {
+        width: 100%;
+        justify-content: space-around;
+      }
+
+      .portfolio-stats {
+        flex-direction: column;
+      }
+
+      .chart-controls {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+    }
+
+    /* 아이콘 */
+    .material-icons {
+      font-family: 'Material Icons';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <i class="material-icons">trending_up</i>
+        주식 모의 트레이딩
+      </div>
+      <div class="header-stats">
+        <div class="header-stat">
+          <div class="header-stat-label">KOSPI</div>
+          <div class="header-stat-value" id="kospi-index">2,862.86 <span style="color: #4caf50">+0.75%</span></div>
+        </div>
+        <div class="header-stat">
+          <div class="header-stat-label">KOSDAQ</div>
+          <div class="header-stat-value" id="kosdaq-index">946.78 <span style="color: #e53935">-0.32%</span></div>
+        </div>
+        <div class="header-stat">
+          <div class="header-stat-label">USD/KRW</div>
+          <div class="header-stat-value" id="usd-krw">1,356.20 <span style="color: #4caf50">+0.15%</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="news-ticker-container">
+    <div class="news-ticker" id="newsTicker">
+      <!-- 뉴스 항목들은 자바스크립트로 동적 생성됩니다 -->
+    </div>
+  </div>
+
+  <div class="main-container">
+    <div class="sidebar">
+      <div class="sidebar-tabs">
+        <div class="sidebar-tab active" data-tab="portfolio">포트폴리오</div>
+        <div class="sidebar-tab" data-tab="market">시장 동향</div>
+      </div>
+
+      <div class="sidebar-content">
+        <div class="tab-content active" id="portfolio-tab">
+          <div class="portfolio-summary">
+            <div class="portfolio-balance" id="totalBalance">₩1,000,000</div>
+            <div id="totalValue" style="color: #757575">총 자산 평가액</div>
+            <div class="portfolio-stats">
+              <div class="portfolio-stat">
+                <div class="portfolio-stat-value" id="cashBalance">₩1,000,000</div>
+                <div class="portfolio-stat-label">보유 현금</div>
+              </div>
+              <div class="portfolio-stat">
+                <div class="portfolio-stat-value" id="stocksValue">₩0</div>
+                <div class="portfolio-stat-label">주식 평가액</div>
+              </div>
+            </div>
+          </div>
+
+          <h2 class="holdings-title">보유 주식</h2>
+          <div id="holdingsList">
+            <div class="holdings-empty">
+              보유 중인 주식이 없습니다.<br>
+              시장에서 주식을 구매해보세요.
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-content" id="market-tab">
+          <table class="stock-table" id="stocksTable">
+            <thead>
+              <tr>
+                <th>종목</th>
+                <th>현재가</th>
+                <th>변동</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 주식 목록은 자바스크립트로 동적 생성됩니다 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="content-header">
+        <div class="stock-header">
+          <div class="stock-title" id="selectedStockName">종목을 선택하세요</div>
+          <div class="stock-subtitle" id="selectedStockSymbol"></div>
+        </div>
+        <div class="stock-price-info">
+          <div class="current-price" id="currentPrice">-</div>
+          <div class="price-change" id="priceChange"></div>
+        </div>
+      </div>
+
+      <div class="chart-container" id="chartContainer">
+        <div class="chart-controls">
+          <div class="chart-periods">
+            <div class="chart-period active" data-period="day">1일</div>
+            <div class="chart-period" data-period="week">1주</div>
+            <div class="chart-period" data-period="month">1개월</div>
+          </div>
+          <div class="chart-types">
+            <div class="chart-type active" data-type="line" title="라인 차트">
+              <i class="material-icons">show_chart</i>
+            </div>
+          </div>
+        </div>
+        <canvas id="stockChart"></canvas>
+      </div>
+
+      <div class="trade-panel">
+        <div class="trade-tabs">
+          <div class="trade-tab buy active" data-trade="buy">매수</div>
+          <div class="trade-tab sell" data-trade="sell">매도</div>
+        </div>
+
+        <div class="trade-form">
+          <div class="form-group">
+            <label class="form-label">거래 수량</label>
+            <input type="number" class="form-input" id="tradeQuantity" placeholder="수량 입력" min="1" value="1">
+          </div>
+
+          <div class="trade-summary" id="tradeSummary">
+            <div class="summary-row">
+              <div>주문 가격:</div>
+              <div id="orderPrice">-</div>
+            </div>
+            <div class="summary-row">
+              <div>주문 수량:</div>
+              <div id="orderQuantity">-</div>
+            </div>
+            <div class="summary-row total">
+              <div>총 금액:</div>
+              <div id="orderTotal">-</div>
+            </div>
+          </div>
+
+          <button class="trade-button buy" id="tradeButton">매수 주문</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notification" id="notification">
+    <i class="material-icons" id="notificationIcon">info</i>
+    <span id="notificationText">알림 메시지</span>
+  </div>
+
+  <script>
+    // ======================================================
+    // 1. 주요 변수 및 상태 설정
+    // ======================================================
+    
+    // 포트폴리오 상태
+    const portfolio = {
+      cash: 1000000,  // 초기 현금 100만원
+      holdings: {},   // 보유 주식 (예: { 'symbol': { quantity: 10, avgPrice: 50000 } })
+      transactions: [] // 거래 내역
+    };
+
+    // 차트 상태
+    let selectedStock = null;  // 현재 선택된 주식
+    let stockChart = null;     // 차트 객체
+    let chartType = 'line';    // 차트 타입 (라인)
+    let chartPeriod = 'day';   // 차트 기간 (1일, 1주, 1개월)
+    
+    // 거래 패널 상태
+    let tradeType = 'buy';     // 거래 유형 (buy 또는 sell)
+
+    // 시뮬레이션 설정
+    const SIMULATION_INTERVAL = 1000;  // 시뮬레이션 간격 (1초)
+    const MAX_HISTORY = 500;          // 최대 기록 저장 개수
+    const PRICE_VOLATILITY = 0.008;    // 가격 변동성 (0.8%)
+    
+    // ======================================================
+    // 2. 주식 데이터 정의
+    // ======================================================
+    
+    // 대기업 리스트
+    const largeCompanies = [
+      { symbol: '005930', name: '삼성전자', sector: '전자' },
+      { symbol: '000660', name: 'SK하이닉스', sector: '반도체' },
+      { symbol: '035420', name: 'NAVER', sector: 'IT 서비스' },
+      { symbol: '051910', name: 'LG화학', sector: '화학' },
+      { symbol: '005380', name: '현대자동차', sector: '자동차' },
+      { symbol: '006400', name: '삼성SDI', sector: '전자부품' },
+      { symbol: '012330', name: '현대모비스', sector: '자동차부품' },
+      { symbol: '035720', name: '카카오', sector: 'IT 서비스' },
+      { symbol: '066570', name: 'LG전자', sector: '전자' },
+      { symbol: '005490', name: 'POSCO홀딩스', sector: '철강' },
+      { symbol: '000270', name: '기아', sector: '자동차' },
+      { symbol: '055550', name: '신한지주', sector: '금융' },
+      { symbol: '105560', name: 'KB금융', sector: '금융' },
+      { symbol: '051900', name: 'LG생활건강', sector: '생활용품' },
+      { symbol: '097950', name: 'CJ제일제당', sector: '식품' },
+      { symbol: '012450', name: '한화에어로스페이스', sector: '방위산업' },
+      { symbol: '034020', name: '두산에너빌리티', sector: '기계' },
+      { symbol: '090430', name: '아모레퍼시픽', sector: '화장품' },
+      { symbol: '011170', name: '롯데케미칼', sector: '화학' },
+      { symbol: '000720', name: 'HD현대건설', sector: '건설' }
+    ];
+    
+    // 중소기업 및 중견기업 리스트 (추가)
+    const smallMediumCompanies = [
+      { symbol: '060980', name: '웹젠', sector: '게임' },
+      { symbol: '078340', name: '컴투스', sector: '게임' },
+      { symbol: '036490', name: '미래에셋생명', sector: '보험' },
+      { symbol: '065350', name: '신성델타테크', sector: '기계' },
+      { symbol: '085670', name: '에스티팜', sector: '제약' },
+      { symbol: '161390', name: '한국타이어앤테크놀로지', sector: '자동차부품' },
+      { symbol: '214320', name: '이노션', sector: '광고' },
+      { symbol: '183490', name: '엔에이치엔', sector: 'IT 서비스' },
+      { symbol: '066970', name: '엘앤에프', sector: '2차전지' },
+      { symbol: '096770', name: 'SK이노베이션', sector: '에너지' },
+      { symbol: '058470', name: '리노공업', sector: '반도체' },
+      { symbol: '009240', name: '한샘', sector: '가구' },
+      { symbol: '009150', name: '삼성전기', sector: '전자부품' },
+      { symbol: '271560', name: '오리온', sector: '식품' },
+      { symbol: '005290', name: '동진쎄미켐', sector: '화학' },
+      { symbol: '145020', name: '휴젤', sector: '바이오' },
+      { symbol: '008930', name: '한미사이언스', sector: '제약' },
+      { symbol: '329180', name: '현대중공업', sector: '조선' },
+      { symbol: '128940', name: '한미약품', sector: '제약' },
+      { symbol: '090460', name: '아세아텍', sector: '기계' },
+      { symbol: '005810', name: '풍산홀딩스', sector: '지주회사' },
+      { symbol: '114090', name: 'GKL', sector: '레저' },
+      { symbol: '060250', name: 'NHN', sector: 'IT 서비스' },
+      { symbol: '067160', name: '아프리카TV', sector: '미디어' },
+      { symbol: '005830', name: 'DB손해보험', sector: '보험' },
+      { symbol: '006360', name: 'GS건설', sector: '건설' },
+      { symbol: '041510', name: '에스엠', sector: '엔터테인먼트' },
+      { symbol: '001060', name: 'JW중외제약', sector: '제약' },
+      { symbol: '094940', name: '케이티알파', sector: '통신장비' },
+      { symbol: '033780', name: 'KT&G', sector: '담배' }
+    ];
+    
+    // 모든 기업 합치기
+    const companies = [...largeCompanies, ...smallMediumCompanies];
+    
+    // 주식 초기 데이터 생성 함수
+    function generateInitialStockData(companies) {
+      const now = new Date();
+      return companies.map(company => {
+        // 각 기업별 초기 가격을 랜덤하게 설정 (섹터별로 비슷한 가격대 설정)
+        let basePrice;
+        
+        switch(company.sector) {
+          case '전자':
+          case '반도체':
+            basePrice = Math.floor(Math.random() * 50000) + 50000; // 5만~10만원
+            break;
+          case '자동차':
+          case '자동차부품':
+            basePrice = Math.floor(Math.random() * 30000) + 60000; // 6만~9만원
+            break;
+          case '화학':
+          case '철강':
+            basePrice = Math.floor(Math.random() * 40000) + 70000; // 7만~11만원
+            break;
+          case 'IT 서비스':
+          case '게임':
+            basePrice = Math.floor(Math.random() * 100000) + 200000; // 20만~30만원
+            break;
+          case '금융':
+          case '지주회사':
+            basePrice = Math.floor(Math.random() * 15000) + 35000; // 3.5만~5만원
+            break;
+          case '바이오':
+          case '제약':
+            basePrice = Math.floor(Math.random() * 60000) + 80000; // 8만~14만원
+            break;
+          case '엔터테인먼트':
+          case '미디어':
+            basePrice = Math.floor(Math.random() * 30000) + 40000; // 4만~7만원
+            break;
+          default:
+            basePrice = Math.floor(Math.random() * 50000) + 40000; // 4만~9만원
+        }
+        
+        // 중소기업은 대체로 가격이 더 낮음
+        if (smallMediumCompanies.some(c => c.symbol === company.symbol)) {
+          basePrice = Math.max(5000, Math.floor(basePrice * 0.6)); // 대기업의 60% 수준
+        }
+        
+        // 하루치의 거래 데이터 미리 생성 (60개 - 분당 데이터로 가정)
+        const history = [];
+        let price = basePrice;
+        
+        // 과거 60분의 데이터 생성
+        for (let i = 60; i >= 0; i--) {
+          const time = new Date(now.getTime() - i * 60000); // i분 전
+          const change = (Math.random() - 0.5) * 0.02; // -1%~+1% 변동
+          
+          const open = price;
+          price = Math.max(100, Math.round(price * (1 + change)));
+          const high = Math.max(open, price) * (1 + Math.random() * 0.005);
+          const low = Math.min(open, price) * (1 - Math.random() * 0.005);
+          const close = price;
+          
+          history.push({
+            time: time,
+            open: open,
+            high: high,
+            low: low,
+            close: close,
+            volume: Math.floor(Math.random() * 10000) + 5000
+          });
+        }
+        
+        return {
+          symbol: company.symbol,
+          name: company.name,
+          sector: company.sector,
+          currentPrice: price,
+          prevClose: basePrice, // 전일 종가
+          dayHigh: Math.max(...history.map(h => h.high)),
+          dayLow: Math.min(...history.map(h => h.low)),
+          history: history,
+          news: []
+        };
+      });
+    }
+
+    // 주식 데이터 생성
+    const stocks = generateInitialStockData(companies);
+    
+    // ======================================================
+    // 3. 뉴스 데이터 및 이벤트 정의
+    // ======================================================
+    
+    // 뉴스 이벤트 데이터 (대기업 관련)
+    const largeCompanyNews = [
+      // 호재성 뉴스 (긍정적 영향)
+      { headline: "삼성전자, 혁신 신제품 발표로 주가 상승", symbol: "005930", impact: 0.03, type: "positive" },
+      { headline: "SK하이닉스, 반도체 수요 폭증에 실적 개선 전망", symbol: "000660", impact: 0.04, type: "positive" },
+      { headline: "NAVER, 글로벌 시장 진출 확대 전략 발표", symbol: "035420", impact: 0.025, type: "positive" },
+      { headline: "LG화학, 친환경 배터리 신기술 개발 성공", symbol: "051910", impact: 0.045, type: "positive" },
+      { headline: "현대자동차, 전기차 판매량 예상치 상회", symbol: "005380", impact: 0.035, type: "positive" },
+      { headline: "삼성SDI, 유럽 배터리 공장 증설 계획 발표", symbol: "006400", impact: 0.04, type: "positive" },
+      { headline: "현대모비스, 자율주행 핵심 부품 특허 취득", symbol: "012330", impact: 0.03, type: "positive" },
+      { headline: "카카오, 신규 AI 서비스 출시로 기대감 상승", symbol: "035720", impact: 0.035, type: "positive" },
+      { headline: "LG전자, 프리미엄 가전 글로벌 판매 호조", symbol: "066570", impact: 0.025, type: "positive" },
+      { headline: "POSCO홀딩스, 친환경 철강 생산 기술 개발", symbol: "005490", impact: 0.02, type: "positive" },
+      { headline: "기아, 신형 SUV 출시로 북미 시장 점유율 확대", symbol: "000270", impact: 0.035, type: "positive" },
+      { headline: "신한지주, 디지털 뱅킹 사업 확장에 투자 증대", symbol: "055550", impact: 0.02, type: "positive" },
+      { headline: "KB금융, 분기 실적 시장 예상치 상회", symbol: "105560", impact: 0.025, type: "positive" },
+      { headline: "LG생활건강, 해외 시장 매출 증가세 지속", symbol: "051900", impact: 0.03, type: "positive" },
+      { headline: "CJ제일제당, 대체식품 사업 확대로 호평", symbol: "097950", impact: 0.025, type: "positive" },
+      
+      // 악재성 뉴스 (부정적 영향)
+      { headline: "삼성전자, 반도체 경쟁 심화로 실적 우려", symbol: "005930", impact: -0.025, type: "negative" },
+      { headline: "SK하이닉스, 글로벌 공급망 이슈로 생산 차질", symbol: "000660", impact: -0.035, type: "negative" },
+      { headline: "NAVER, 해외 사업 확장 지연 소식", symbol: "035420", impact: -0.02, type: "negative" },
+      { headline: "LG화학, 원자재 가격 상승으로 수익성 하락", symbol: "051910", impact: -0.03, type: "negative" },
+      { headline: "현대자동차, 부품 수급 차질로 생산량 감소", symbol: "005380", impact: -0.025, type: "negative" },
+      { headline: "삼성SDI, 배터리 리콜 우려로 주가 하락", symbol: "006400", impact: -0.035, type: "negative" },
+      { headline: "현대모비스, 노사 협상 난항으로 생산 차질", symbol: "012330", impact: -0.02, type: "negative" },
+      { headline: "카카오, 규제 강화 우려로 투자심리 위축", symbol: "035720", impact: -0.025, type: "negative" },
+      { headline: "LG전자, 해외 경쟁사와의 특허 분쟁 심화", symbol: "066570", impact: -0.03, type: "negative" },
+      { headline: "POSCO홀딩스, 철강 수요 감소 전망", symbol: "005490", impact: -0.025, type: "negative" },
+      { headline: "기아, 해외 시장 경쟁 심화로 점유율 하락", symbol: "000270", impact: -0.03, type: "negative" },
+      { headline: "신한지주, 가계대출 규제 강화로 성장세 둔화", symbol: "055550", impact: -0.025, type: "negative" },
+      { headline: "KB금융, 시장 금리 상승으로 수익성 우려", symbol: "105560", impact: -0.02, type: "negative" },
+      { headline: "LG생활건강, 중국 시장 경쟁 심화 우려", symbol: "051900", impact: -0.03, type: "negative" },
+      { headline: "CJ제일제당, 원자재 가격 인상으로 비용 부담", symbol: "097950", impact: -0.025, type: "negative" }
+    ];
+    
+    // 뉴스 이벤트 데이터 (중소기업 관련 추가)
+    const smallMediumCompanyNews = [
+      // 호재성 뉴스 (긍정적 영향)
+      { headline: "웹젠, 신작 게임 흥행에 분기 실적 호조", symbol: "060980", impact: 0.05, type: "positive" },
+      { headline: "컴투스, 글로벌 모바일 게임 시장 점유율 확대", symbol: "078340", impact: 0.045, type: "positive" },
+      { headline: "미래에셋생명, 디지털 보험 상품 판매 호조", symbol: "036490", impact: 0.03, type: "positive" },
+      { headline: "신성델타테크, 주요 고객사와 공급 계약 체결", symbol: "065350", impact: 0.055, type: "positive" },
+      { headline: "에스티팜, 바이오 신약 임상 성공적 진행", symbol: "085670", impact: 0.06, type: "positive" },
+      { headline: "한국타이어, 글로벌 완성차 업체 공급 확대", symbol: "161390", impact: 0.035, type: "positive" },
+      { headline: "이노션, 글로벌 광고 에이전시 인수 추진", symbol: "214320", impact: 0.04, type: "positive" },
+      { headline: "엔에이치엔, 클라우드 서비스 매출 급증", symbol: "183490", impact: 0.045, type: "positive" },
+      { headline: "엘앤에프, 2차전지 소재 수주 증가", symbol: "066970", impact: 0.055, type: "positive" },
+      { headline: "SK이노베이션, 배터리 사업 분사 효과 긍정적", symbol: "096770", impact: 0.04, type: "positive" },
+      { headline: "리노공업, 반도체 테스트 장비 수요 급증", symbol: "058470", impact: 0.05, type: "positive" },
+      { headline: "한샘, 홈인테리어 시장 성장에 매출 증가", symbol: "009240", impact: 0.035, type: "positive" },
+      { headline: "오리온, 해외 시장 매출 호조로 실적 개선", symbol: "271560", impact: 0.03, type: "positive" },
+      { headline: "동진쎄미켐, 반도체 소재 수출 증가", symbol: "005290", impact: 0.045, type: "positive" },
+      { headline: "휴젤, 의료미용 시장 성장에 수혜", symbol: "145020", impact: 0.05, type: "positive" },
+      
+      // 악재성 뉴스 (부정적 영향)
+      { headline: "웹젠, 게임 출시 일정 연기로 주가 하락", symbol: "060980", impact: -0.04, type: "negative" },
+      { headline: "컴투스, 모바일 게임 시장 경쟁 심화", symbol: "078340", impact: -0.035, type: "negative" },
+      { headline: "미래에셋생명, 금리 인하로 보험 수익성 악화 우려", symbol: "036490", impact: -0.025, type: "negative" },
+      { headline: "신성델타테크, 원자재 가격 상승으로 마진 압박", symbol: "065350", impact: -0.04, type: "negative" },
+      { headline: "에스티팜, 신약 임상 결과 기대치 하회", symbol: "085670", impact: -0.05, type: "negative" },
+      { headline: "한국타이어, 러시아-우크라이나 분쟁으로 원자재 수급 차질", symbol: "161390", impact: -0.03, type: "negative" },
+      { headline: "이노션, 주요 광고주 계약 축소 소식", symbol: "214320", impact: -0.035, type: "negative" },
+      { headline: "엔에이치엔, 인건비 상승으로 수익성 악화", symbol: "183490", impact: -0.03, type: "negative" },
+      { headline: "엘앤에프, 배터리 소재 품질 이슈 제기", symbol: "066970", impact: -0.045, type: "negative" },
+      { headline: "SK이노베이션, 정유 사업 마진 악화", symbol: "096770", impact: -0.035, type: "negative" },
+      { headline: "리노공업, 고객사 재고 조정으로 주문 감소", symbol: "058470", impact: -0.04, type: "negative" },
+      { headline: "한샘, 가구 시장 경기 둔화로 매출 감소", symbol: "009240", impact: -0.03, type: "negative" },
+      { headline: "오리온, 중국 사업 부진으로 실적 하향 조정", symbol: "271560", impact: -0.025, type: "negative" },
+      { headline: "동진쎄미켐, 반도체 경기 하락 우려", symbol: "005290", impact: -0.035, type: "negative" },
+      { headline: "휴젤, 화장품 시장 경쟁 심화로 성장세 둔화", symbol: "145020", impact: -0.04, type: "negative" }
+    ];
+    
+    // 산업별/글로벌 뉴스
+    const sectorGlobalNews = [
+      // 산업별 뉴스 (다양한 종목에 영향)
+      { headline: "반도체 업종, 슈퍼 사이클 진입 전망에 투자자 관심 집중", symbols: ["005930", "000660", "058470"], impact: 0.025, type: "sector_positive" },
+      { headline: "자동차 산업, 친환경차 전환 가속화로 부품 수요 증가", symbols: ["005380", "000270", "012330", "161390"], impact: 0.02, type: "sector_positive" },
+      { headline: "금융권, 금리 인상 사이클 진입으로 수익성 개선 기대", symbols: ["055550", "105560", "086790", "005830"], impact: 0.015, type: "sector_positive" },
+      { headline: "IT 기업, 메타버스 관련 신사업 추진으로 성장성 주목", symbols: ["035420", "035720", "036570", "060250"], impact: 0.03, type: "sector_positive" },
+      { headline: "화학 업종, 글로벌 공급망 차질로 제품 가격 상승", symbols: ["051910", "011170", "005290"], impact: 0.02, type: "sector_positive" },
+      { headline: "전자부품, 차세대 디스플레이 수요 증가 전망", symbols: ["006400", "009150"], impact: 0.025, type: "sector_positive" },
+      { headline: "건설 및 중공업, 인프라 투자 확대로 수혜 예상", symbols: ["000720", "034020", "006360", "329180"], impact: 0.02, type: "sector_positive" },
+      { headline: "통신 및 서비스, 디지털 전환 가속화로 신규 사업 기회 확대", symbols: ["030200", "018260", "060250"], impact: 0.015, type: "sector_positive" },
+      { headline: "제약 및 바이오, 글로벌 헬스케어 투자 확대로 주가 상승", symbols: ["085670", "145020", "008930", "128940", "001060"], impact: 0.03, type: "sector_positive" },
+      { headline: "게임 산업, 메타버스 연계 콘텐츠 개발로 성장 가속화", symbols: ["060980", "078340", "036570"], impact: 0.035, type: "sector_positive" },
+      { headline: "엔터테인먼트, K-콘텐츠 글로벌 인기 지속으로 실적 개선", symbols: ["041510", "035720"], impact: 0.04, type: "sector_positive" },
+      
+      { headline: "반도체 업종, 공급 과잉 우려로 주가 조정", symbols: ["005930", "000660", "058470"], impact: -0.02, type: "sector_negative" },
+      { headline: "자동차 산업, 원자재 가격 상승으로 원가 부담 가중", symbols: ["005380", "000270", "012330", "161390"], impact: -0.015, type: "sector_negative" },
+      { headline: "금융권, 가계부채 규제 강화로 성장 둔화 불가피", symbols: ["055550", "105560", "086790", "005830"], impact: -0.015, type: "sector_negative" },
+      { headline: "IT 기업, 플랫폼 규제 강화 움직임에 불확실성 확대", symbols: ["035420", "035720", "036570", "060250"], impact: -0.02, type: "sector_negative" },
+      { headline: "화학 업종, 친환경 규제 강화로 비용 증가 예상", symbols: ["051910", "011170", "005290"], impact: -0.015, type: "sector_negative" },
+      { headline: "전자부품, 스마트폰 수요 둔화로 성장세 약화", symbols: ["006400", "009150"], impact: -0.02, type: "sector_negative" },
+      { headline: "건설 및 중공업, 글로벌 수주 경쟁 심화로 수익성 악화", symbols: ["000720", "034020", "006360", "329180"], impact: -0.015, type: "sector_negative" },
+      { headline: "통신 및 서비스, 시장 포화로 인한 성장 한계 도달", symbols: ["030200", "018260", "060250"], impact: -0.015, type: "sector_negative" },
+      { headline: "제약 및 바이오, 임상 실패 소식 잇따라 투자심리 위축", symbols: ["085670", "145020", "008930", "128940", "001060"], impact: -0.025, type: "sector_negative" },
+      { headline: "게임 산업, 중국 규제 강화로 해외 진출 불확실성 확대", symbols: ["060980", "078340", "036570"], impact: -0.03, type: "sector_negative" },
+      { headline: "엔터테인먼트, 한한령 재개 우려로 중국 사업 불확실성 증가", symbols: ["041510", "035720"], impact: -0.025, type: "sector_negative" },
+      
+      // 글로벌 이슈 뉴스 (전체 시장 영향)
+      { headline: "미 연준, 금리 인상 속도 완화 시사에 글로벌 증시 상승", symbols: "all", impact: 0.015, type: "global_positive" },
+      { headline: "글로벌 공급망 안정화 진전, 기업 실적 개선 기대감", symbols: "all", impact: 0.01, type: "global_positive" },
+      { headline: "주요국 경기 지표 개선으로 경기 회복 기대감 확대", symbols: "all", impact: 0.015, type: "global_positive" },
+      { headline: "국제 유가 안정세, 원자재 가격 부담 완화", symbols: "all", impact: 0.01, type: "global_positive" },
+      { headline: "미중 무역협상 진전, 글로벌 교역 환경 개선 전망", symbols: "all", impact: 0.02, type: "global_positive" },
+      { headline: "글로벌 AI 혁신 가속화, 기술주 상승세 견인", symbols: "all", impact: 0.015, type: "global_positive" },
+      { headline: "OPEC+ 감산 철회, 에너지 가격 안정화 기대", symbols: "all", impact: 0.01, type: "global_positive" },
+      { headline: "세계 경제 성장률 상향 조정, IMF 낙관적 전망", symbols: "all", impact: 0.02, type: "global_positive" },
+      
+      { headline: "인플레이션 우려 지속, 긴축 가속화 가능성에 시장 불안", symbols: "all", impact: -0.015, type: "global_negative" },
+      { headline: "글로벌 경기 침체 우려 확대로 위험자산 회피 심리 강화", symbols: "all", impact: -0.02, type: "global_negative" },
+      { headline: "지정학적 긴장 고조로 시장 불확실성 증가", symbols: "all", impact: -0.015, type: "global_negative" },
+      { headline: "국제 원자재 가격 급등으로 기업 원가 부담 가중", symbols: "all", impact: -0.01, type: "global_negative" },
+      { headline: "주요국 금리 인상 가속화, 유동성 축소 우려 확대", symbols: "all", impact: -0.015, type: "global_negative" },
+      { headline: "중국 경기 둔화 심화, 글로벌 수요 감소 우려", symbols: "all", impact: -0.02, type: "global_negative" },
+      { headline: "세계 반도체 수요 전망 하향 조정, 기술주 약세", symbols: "all", impact: -0.015, type: "global_negative" },
+      { headline: "글로벌 신용등급 강등 위험 확대, 채권 시장 불안", symbols: "all", impact: -0.01, type: "global_negative" }
+    ];
+    
+    // 모든 뉴스 이벤트 합치기
+    const newsEvents = [...largeCompanyNews, ...smallMediumCompanyNews, ...sectorGlobalNews];
+    
+    // 뉴스 티커 업데이트 함수
+    function updateNewsTicker() {
+      const ticker = document.getElementById('newsTicker');
+      ticker.innerHTML = '';
+      
+      // 랜덤으로 5-8개의 뉴스 선택
+      const numNews = Math.floor(Math.random() * 4) + 5;
+      const selectedIndices = [];
+      
+      while (selectedIndices.length < numNews) {
+        const index = Math.floor(Math.random() * newsEvents.length);
+        if (!selectedIndices.includes(index)) {
+          selectedIndices.push(index);
+        }
+      }
+      
+      // 선택된 뉴스 표시
+      selectedIndices.forEach(index => {
+        const news = newsEvents[index];
+        const newsElement = document.createElement('div');
+        newsElement.className = `news-ticker-item ${news.type === 'positive' || news.type === 'sector_positive' || news.type === 'global_positive' ? 'positive' : news.type === 'negative' || news.type === 'sector_negative' || news.type === 'global_negative' ? 'negative' : ''}`;
+        
+        // 뉴스 타입에 따른 아이콘 지정
+        let icon = '';
+        if (news.type === 'positive' || news.type === 'sector_positive' || news.type === 'global_positive') {
+          icon = '<i class="material-icons">trending_up</i>';
+        } else if (news.type === 'negative' || news.type === 'sector_negative' || news.type === 'global_negative') {
+          icon = '<i class="material-icons">trending_down</i>';
+        } else {
+          icon = '<i class="material-icons">fiber_new</i>';
+        }
+        
+        newsElement.innerHTML = `${icon} ${news.headline}`;
+        ticker.appendChild(newsElement);
+        
+        // 뉴스 효과 적용 (70% 확률)
+        if (Math.random() < 0.7) {
+          applyNewsEffect(news);
+        }
+      });
+      
+      // 애니메이션 재시작
+      ticker.style.animation = 'none';
+      void ticker.offsetWidth; // reflow 강제
+      ticker.style.animation = 'news-ticker-animation 30s linear infinite';
+    }
+    
+    // 뉴스 효과 적용 함수
+    function applyNewsEffect(news) {
+      const now = new Date();
+      
+      // 단일 종목 뉴스인 경우
+      if (news.symbol && news.symbol !== 'all') {
+        const stock = stocks.find(s => s.symbol === news.symbol);
+        if (stock) {
+          applyPriceEffect(stock, news.impact, now);
+          
+          // 뉴스 기록에 추가
+          stock.news.push({
+            time: now,
+            headline: news.headline,
+            impact: news.impact
+          });
+          
+          // 최대 10개까지만 보관
+          if (stock.news.length > 10) {
+            stock.news.shift();
+          }
+        }
+      }
+      // 섹터 뉴스인 경우 (여러 종목)
+      else if (news.symbols && Array.isArray(news.symbols)) {
+        news.symbols.forEach(symbol => {
+          const stock = stocks.find(s => s.symbol === symbol);
+          if (stock) {
+            applyPriceEffect(stock, news.impact, now);
+          }
+        });
+      }
+      // 글로벌 뉴스인 경우 (모든 종목)
+      else if (news.symbols === 'all') {
+        stocks.forEach(stock => {
+          // 글로벌 뉴스는 종목별로 영향도를 약간 다르게 적용
+          const variableImpact = news.impact * (0.8 + Math.random() * 0.4);
+          applyPriceEffect(stock, variableImpact, now);
+        });
+        
+        // 글로벌 지표도 업데이트
+        updateMarketIndices(news.impact);
+      }
+    }
+    
+    // 주가에 효과 적용 함수
+    function applyPriceEffect(stock, impact, time) {
+      const lastPrice = stock.currentPrice;
+      // 영향도에 따라 가격 변동
+      const newPrice = Math.max(100, Math.round(lastPrice * (1 + impact)));
+      
+      // 데이터 생성
+      const historyEntry = {
+        time: time,
+        open: lastPrice,
+        high: Math.max(lastPrice, newPrice) * (1 + Math.random() * 0.005),
+        low: Math.min(lastPrice, newPrice) * (1 - Math.random() * 0.005),
+        close: newPrice,
+        volume: Math.floor(Math.random() * 15000) + 5000
+      };
+      
+      // 새 데이터 추가
+      stock.history.push(historyEntry);
+      
+      // 현재가 업데이트
+      stock.currentPrice = newPrice;
+      
+      // 일중 최고/최저 업데이트
+      stock.dayHigh = Math.max(stock.dayHigh, historyEntry.high);
+      stock.dayLow = Math.min(stock.dayLow, historyEntry.low);
+      
+      // 히스토리 제한
+      if (stock.history.length > MAX_HISTORY) {
+        stock.history.shift();
+      }
+    }
+    
+    // 시장 지표 업데이트
+    function updateMarketIndices(globalImpact) {
+      const kospiElement = document.getElementById('kospi-index');
+      const kosdaqElement = document.getElementById('kosdaq-index');
+      const usdKrwElement = document.getElementById('usd-krw');
+      
+      // KOSPI 업데이트 (2800~2900 범위)
+      const kospi = parseFloat(kospiElement.textContent.split(' ')[0]);
+      const kospiChange = (Math.random() * 0.5 + 0.5) * globalImpact; // 글로벌 영향 + 랜덤 요소
+      const newKospi = Math.min(2900, Math.max(2800, kospi * (1 + kospiChange)));
+      const kospiChangePercent = ((newKospi / kospi - 1) * 100).toFixed(2);
+      
+      kospiElement.innerHTML = `${newKospi.toFixed(2)} <span style="color: ${kospiChangePercent >= 0 ? '#4caf50' : '#e53935'}">${kospiChangePercent >= 0 ? '+' : ''}${kospiChangePercent}%</span>`;
+      
+      // KOSDAQ 업데이트 (900~1000 범위)
+      const kosdaq = parseFloat(kosdaqElement.textContent.split(' ')[0]);
+      const kosdaqChange = (Math.random() * 0.6 + 0.4) * globalImpact; // 글로벌 영향 + 랜덤 요소
+      const newKosdaq = Math.min(1000, Math.max(900, kosdaq * (1 + kosdaqChange)));
+      const kosdaqChangePercent = ((newKosdaq / kosdaq - 1) * 100).toFixed(2);
+      
+      kosdaqElement.innerHTML = `${newKosdaq.toFixed(2)} <span style="color: ${kosdaqChangePercent >= 0 ? '#4caf50' : '#e53935'}">${kosdaqChangePercent >= 0 ? '+' : ''}${kosdaqChangePercent}%</span>`;
+      
+      // USD/KRW 업데이트 (1320~1380 범위, 보통 주가와 반대 방향으로 움직임)
+      const usdKrw = parseFloat(usdKrwElement.textContent.split(' ')[0]);
+      const usdKrwChange = (Math.random() * 0.3 - 0.15) * globalImpact; // 글로벌 영향 + 랜덤 요소 (약한 음의 상관관계)
+      const newUsdKrw = Math.min(1380, Math.max(1320, usdKrw * (1 + usdKrwChange)));
+      const usdKrwChangePercent = ((newUsdKrw / usdKrw - 1) * 100).toFixed(2);
+      
+      usdKrwElement.innerHTML = `${newUsdKrw.toFixed(2)} <span style="color: ${usdKrwChangePercent >= 0 ? '#4caf50' : '#e53935'}">${usdKrwChangePercent >= 0 ? '+' : ''}${usdKrwChangePercent}%</span>`;
+    }
+    
+    // ======================================================
+    // 4. UI 이벤트 핸들러 설정
+    // ======================================================
+    
+    // 사이드바 탭 전환
+    document.querySelectorAll('.sidebar-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // 이전 활성 탭 비활성화
+        document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // 클릭한 탭 활성화
+        tab.classList.add('active');
+        document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+      });
+    });
+    
+    // 주식 테이블 행 클릭 이벤트
+    document.querySelector('#stocksTable tbody').addEventListener('click', (e) => {
+      // 가장 가까운 tr 찾기
+      const row = e.target.closest('tr');
+      if (row) {
+        const symbol = row.dataset.symbol;
+        if (symbol) {
+          selectStock(symbol);
+        }
+      }
+    });
+    
+    // 차트 기간 변경
+    document.querySelectorAll('.chart-period').forEach(period => {
+      period.addEventListener('click', () => {
+        // 이전 활성 기간 비활성화
+        document.querySelectorAll('.chart-period').forEach(p => p.classList.remove('active'));
+        
+        // 클릭한 기간 활성화
+        period.classList.add('active');
+        chartPeriod = period.dataset.period;
+        
+        // 차트 업데이트
+        if (selectedStock) {
+          updateChart();
+        }
+      });
+    });
+    
+    // 거래 탭 변경
+    document.querySelectorAll('.trade-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // 이전 활성 탭 비활성화
+        document.querySelectorAll('.trade-tab').forEach(t => t.classList.remove('active'));
+        
+        // 클릭한 탭 활성화
+        tab.classList.add('active');
+        tradeType = tab.dataset.trade;
+        
+        // 거래 버튼 업데이트
+        const tradeButton = document.getElementById('tradeButton');
+        if (tradeType === 'buy') {
+          tradeButton.textContent = '매수 주문';
+          tradeButton.className = 'trade-button buy';
+        } else {
+          tradeButton.textContent = '매도 주문';
+          tradeButton.className = 'trade-button sell';
+        }
+        
+        // 거래 요약 업데이트
+        updateTradeSummary();
+      });
+    });
+    
+    // 거래 수량 입력 변경 이벤트
+    document.getElementById('tradeQuantity').addEventListener('input', updateTradeSummary);
+    
+    // 거래 버튼 클릭 이벤트
+    document.getElementById('tradeButton').addEventListener('click', () => {
+      if (!selectedStock) {
+        showNotification('먼저 종목을 선택하세요.', 'error');
+        return;
+      }
+      
+      const quantity = parseInt(document.getElementById('tradeQuantity').value);
+      if (isNaN(quantity) || quantity <= 0) {
+        showNotification('올바른 수량을 입력하세요.', 'error');
+        return;
+      }
+      
+      if (tradeType === 'buy') {
+        buyStock(quantity);
+      } else {
+        sellStock(quantity);
+      }
+    });
+    
+    // ======================================================
+    // 5. 주식 선택 및 표시 함수
+    // ======================================================
+    
+    // 주식 선택 함수
+    function selectStock(symbol) {
+      try {
+        selectedStock = stocks.find(s => s.symbol === symbol);
+        
+        if (!selectedStock) {
+          showNotification('종목을 찾을 수 없습니다.', 'error');
+          return;
+        }
+        
+        // 종목 정보 업데이트
+        document.getElementById('selectedStockName').textContent = selectedStock.name;
+        document.getElementById('selectedStockSymbol').textContent = `${selectedStock.symbol} · ${selectedStock.sector}`;
+        
+        // 가격 정보 업데이트
+        updateSelectedStockPrice();
+        
+        // 차트 업데이트
+        if (stockChart) {
+          stockChart.destroy();
+          stockChart = null;
+        }
+        createChart();
+        
+        // 거래 요약 업데이트
+        updateTradeSummary();
+      } catch (error) {
+        console.error('주식 선택 오류:', error);
+        showNotification('주식 정보를 불러오는 중 오류가 발생했습니다.', 'error');
+      }
+    }
+    
+    // 선택된 주식 가격 정보 업데이트
+    function updateSelectedStockPrice() {
+      if (!selectedStock) return;
+      
+      const currentPrice = selectedStock.currentPrice;
+      const prevClose = selectedStock.prevClose;
+      const change = currentPrice - prevClose;
+      const changePercent = (change / prevClose * 100).toFixed(2);
+      
+      document.getElementById('currentPrice').textContent = `₩${currentPrice.toLocaleString()}`;
+      
+      const priceChangeElement = document.getElementById('priceChange');
+      priceChangeElement.innerHTML = `
+        <i class="material-icons">${change >= 0 ? 'arrow_upward' : 'arrow_downward'}</i>
+        ${change >= 0 ? '+' : ''}${change.toLocaleString()} (${change >= 0 ? '+' : ''}${changePercent}%)
+      `;
+      priceChangeElement.className = `price-change ${change >= 0 ? 'positive' : 'negative'}`;
+    }
+    
+    // ======================================================
+    // 6. 차트 관련 함수
+    // ======================================================
+    
+    // 차트 생성 함수 (라인 차트만 사용)
+    function createChart() {
+      if (!selectedStock) return;
+      
+      try {
+        const ctx = document.getElementById('stockChart').getContext('2d');
+        const chartData = prepareChartData();
+        
+        // 차트 옵션
+        const options = {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: chartPeriod === 'day' ? 'minute' : chartPeriod === 'week' ? 'hour' : 'day',
+                displayFormats: {
+                  minute: 'HH:mm',
+                  hour: 'MM-DD HH:mm',
+                  day: 'MM-DD'
+                }
+              },
+              grid: {
+                display: false
+              }
+            },
+            y: {
+              position: 'right',
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)'
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                label: (context) => {
+                  const value = context.parsed.y;
+                  return `₩${value.toLocaleString()}`;
+                }
+              }
+            }
+          }
+        };
+        
+        // 차트 생성
+        stockChart = new Chart(ctx, {
+          type: 'line',
+          data: chartData,
+          options: options
+        });
+      } catch (error) {
+        console.error('차트 생성 오류:', error);
+        showNotification('차트를 생성하는 중 오류가 발생했습니다.', 'error');
+      }
+    }
+    
+    // 차트 데이터 준비 함수
+    function prepareChartData() {
+      if (!selectedStock) return null;
+      
+      // 기간에 따라 데이터 필터링
+      let filteredHistory = selectedStock.history;
+      const now = new Date();
+      
+      if (chartPeriod === 'day') {
+        // 최근 24시간 데이터만 사용
+        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        filteredHistory = selectedStock.history.filter(h => h.time > oneDayAgo);
+      } else if (chartPeriod === 'week') {
+        // 최근 7일 데이터만 사용
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        filteredHistory = selectedStock.history.filter(h => h.time > oneWeekAgo);
+      }
+      
+      // 데이터 포맷 변경 (라인 차트용)
+      return {
+        datasets: [{
+          label: selectedStock.name,
+          data: filteredHistory.map(h => ({
+            x: h.time,
+            y: h.close
+          })),
+          borderColor: 'rgba(21, 101, 192, 1)',
+          backgroundColor: 'rgba(21, 101, 192, 0.1)',
+          borderWidth: 2,
+          tension: 0.1,
+          fill: true
+        }]
+      };
+    }
+    
+    // 차트 업데이트 함수
+    function updateChart() {
+      if (!selectedStock || !stockChart) return;
+      
+      try {
+        const chartData = prepareChartData();
+        stockChart.data.datasets[0].data = chartData.datasets[0].data;
+        stockChart.update('none');
+      } catch (error) {
+        console.error('차트 업데이트 오류:', error);
+      }
+    }
+    
+    // ======================================================
+    // 7. 거래 관련 함수
+    // ======================================================
+    
+    // 거래 요약 업데이트
+    function updateTradeSummary() {
+      if (!selectedStock) return;
+      
+      const quantity = parseInt(document.getElementById('tradeQuantity').value) || 0;
+      const price = selectedStock.currentPrice;
+      const total = price * quantity;
+      
+      document.getElementById('orderPrice').textContent = `₩${price.toLocaleString()}`;
+      document.getElementById('orderQuantity').textContent = `${quantity}주`;
+      document.getElementById('orderTotal').textContent = `₩${total.toLocaleString()}`;
+    }
+    
+    // 매수 함수
+    function buyStock(quantity) {
+      if (!selectedStock) {
+        showNotification('먼저 종목을 선택하세요.', 'error');
+        return;
+      }
+      
+      const price = selectedStock.currentPrice;
+      const total = price * quantity;
+      
+      // 현금 확인
+      if (portfolio.cash < total) {
+        showNotification('현금이 부족합니다.', 'error');
+        return;
+      }
+      
+      // 현재 보유 주식 확인
+      const holding = portfolio.holdings[selectedStock.symbol] || { quantity: 0, avgPrice: 0 };
+      
+      // 평균 매수 가격 계산
+      const newTotalQuantity = holding.quantity + quantity;
+      const newTotalCost = (holding.quantity * holding.avgPrice) + (quantity * price);
+      const newAvgPrice = newTotalCost / newTotalQuantity;
+      
+      // 포트폴리오 업데이트
+      portfolio.cash -= total;
+      portfolio.holdings[selectedStock.symbol] = {
+        quantity: newTotalQuantity,
+        avgPrice: newAvgPrice
+      };
+      
+      // 거래 내역에 추가
+      portfolio.transactions.push({
+        time: new Date(),
+        symbol: selectedStock.symbol,
+        name: selectedStock.name,
+        type: 'buy',
+        quantity: quantity,
+        price: price,
+        total: total
+      });
+      
+      // UI 업데이트
+      updatePortfolioDisplay();
+      showNotification(`${selectedStock.name} ${quantity}주 매수 완료`, 'success');
+    }
+    
+    // 매도 함수
+    function sellStock(quantity) {
+      if (!selectedStock) {
+        showNotification('먼저 종목을 선택하세요.', 'error');
+        return;
+      }
+      
+      // 보유 주식 확인
+      const holding = portfolio.holdings[selectedStock.symbol];
+      if (!holding || holding.quantity < quantity) {
+        showNotification('보유 주식이 부족합니다.', 'error');
+        return;
+      }
+      
+      const price = selectedStock.currentPrice;
+      const total = price * quantity;
+      
+      // 포트폴리오 업데이트
+      portfolio.cash += total;
+      
+      if (holding.quantity === quantity) {
+        // 전량 매도
+        delete portfolio.holdings[selectedStock.symbol];
+      } else {
+        // 일부 매도 (평균 가격은 변동 없음)
+        portfolio.holdings[selectedStock.symbol].quantity -= quantity;
+      }
+      
+      // 거래 내역에 추가
+      portfolio.transactions.push({
+        time: new Date(),
+        symbol: selectedStock.symbol,
+        name: selectedStock.name,
+        type: 'sell',
+        quantity: quantity,
+        price: price,
+        total: total
+      });
+      
+      // UI 업데이트
+      updatePortfolioDisplay();
+      showNotification(`${selectedStock.name} ${quantity}주 매도 완료`, 'success');
+    }
+    
+    // ======================================================
+    // 8. UI 표시 함수
+    // ======================================================
+    
+    // 주식 테이블 렌더링
+    function renderStocksTable() {
+      try {
+        const tbody = document.querySelector('#stocksTable tbody');
+        tbody.innerHTML = '';
+        
+        stocks.forEach(stock => {
+          const prevClose = stock.prevClose;
+          const currentPrice = stock.currentPrice;
+          const change = currentPrice - prevClose;
+          const changePercent = (change / prevClose * 100).toFixed(2);
+          
+          const tr = document.createElement('tr');
+          tr.dataset.symbol = stock.symbol;
+          
+          tr.innerHTML = `
+            <td>
+              <div class="stock-name">${stock.name}</div>
+              <div class="stock-symbol">${stock.symbol}</div>
+            </td>
+            <td class="stock-price">₩${currentPrice.toLocaleString()}</td>
+            <td class="stock-change ${change >= 0 ? 'positive' : 'negative'}">
+              ${change >= 0 ? '+' : ''}${changePercent}%
+            </td>
+          `;
+          
+          tbody.appendChild(tr);
+        });
+      } catch (error) {
+        console.error('주식 테이블 렌더링 오류:', error);
+      }
+    }
+    
+    // 포트폴리오 표시 업데이트
+    function updatePortfolioDisplay() {
+      try {
+        // 보유 현금 표시
+        document.getElementById('cashBalance').textContent = `₩${portfolio.cash.toLocaleString()}`;
+        
+        // 보유 주식 가치 계산
+        let stocksValue = 0;
+        Object.keys(portfolio.holdings).forEach(symbol => {
+          const stock = stocks.find(s => s.symbol === symbol);
+          const holding = portfolio.holdings[symbol];
+          stocksValue += stock.currentPrice * holding.quantity;
+        });
+        
+        // 주식 평가액 표시
+        document.getElementById('stocksValue').textContent = `₩${stocksValue.toLocaleString()}`;
+        
+        // 총 자산 계산 및 표시
+        const totalBalance = portfolio.cash + stocksValue;
+        document.getElementById('totalBalance').textContent = `₩${totalBalance.toLocaleString()}`;
+        
+        // 보유 주식 목록 업데이트
+        const holdingsList = document.getElementById('holdingsList');
+        
+        if (Object.keys(portfolio.holdings).length === 0) {
+          holdingsList.innerHTML = `
+            <div class="holdings-empty">
+              보유 중인 주식이 없습니다.<br>
+              시장에서 주식을 구매해보세요.
+            </div>
+          `;
+        } else {
+          holdingsList.innerHTML = '';
+          
+          Object.keys(portfolio.holdings).forEach(symbol => {
+            const stock = stocks.find(s => s.symbol === symbol);
+            const holding = portfolio.holdings[symbol];
+            
+            const currentValue = stock.currentPrice * holding.quantity;
+            const purchaseValue = holding.avgPrice * holding.quantity;
+            const profit = currentValue - purchaseValue;
+            const profitPercent = (profit / purchaseValue * 100).toFixed(2);
+            
+            const holdingItem = document.createElement('div');
+            holdingItem.className = 'holding-item';
+            holdingItem.dataset.symbol = symbol;
+            holdingItem.addEventListener('click', () => selectStock(symbol));
+            
+            holdingItem.innerHTML = `
+              <div class="holding-info">
+                <div class="stock-name">${stock.name}</div>
+                <div class="stock-symbol">${symbol}</div>
+              </div>
+              <div class="holding-stats">
+                <div class="holding-shares">${holding.quantity}주 | 평균 ₩${holding.avgPrice.toLocaleString()}</div>
+                <div class="holding-value">₩${currentValue.toLocaleString()}</div>
+                <div class="price-change ${profit >= 0 ? 'positive' : 'negative'}">
+                  ${profit >= 0 ? '+' : ''}₩${profit.toLocaleString()} (${profit >= 0 ? '+' : ''}${profitPercent}%)
+                </div>
+              </div>
+            `;
+            
+            holdingsList.appendChild(holdingItem);
+          });
+        }
+      } catch (error) {
+        console.error('포트폴리오 표시 오류:', error);
+      }
+    }
+    
+    // 알림 표시 함수
+    function showNotification(message, type = 'info') {
+      const notification = document.getElementById('notification');
+      const icon = document.getElementById('notificationIcon');
+      const text = document.getElementById('notificationText');
+      
+      // 아이콘 설정
+      switch (type) {
+        case 'success':
+          icon.textContent = 'check_circle';
+          notification.className = 'notification success';
+          break;
+        case 'error':
+          icon.textContent = 'error';
+          notification.className = 'notification error';
+          break;
+        default:
+          icon.textContent = 'info';
+          notification.className = 'notification info';
+          break;
+      }
+      
+      // 메시지 설정
+      text.textContent = message;
+      
+      // 알림 표시
+      notification.classList.add('show');
+      
+      // 3초 후 자동 숨김
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+    
+    // ======================================================
+    // 9. 시뮬레이션 업데이트 함수
+    // ======================================================
+    
+    // 주식 가격 업데이트 함수
+    function updateStockPrices() {
+      const now = new Date();
+      
+      stocks.forEach(stock => {
+        // 마지막 가격
+        const lastPrice = stock.currentPrice;
+        
+        // 랜덤 변동 (-PRICE_VOLATILITY/2 ~ +PRICE_VOLATILITY/2)
+        const change = (Math.random() - 0.5) * PRICE_VOLATILITY;
+        
+        // 새 가격 (최소 100원)
+        const newPrice = Math.max(100, Math.round(lastPrice * (1 + change)));
+        
+        // 데이터 생성
+        const historyEntry = {
+          time: now,
+          open: lastPrice,
+          high: Math.max(lastPrice, newPrice) * (1 + Math.random() * 0.002),
+          low: Math.min(lastPrice, newPrice) * (1 - Math.random() * 0.002),
+          close: newPrice,
+          volume: Math.floor(Math.random() * 10000) + 2000
+        };
+        
+        // 새 데이터 추가
+        stock.history.push(historyEntry);
+        
+        // 현재가 업데이트
+        stock.currentPrice = newPrice;
+        
+        // 일중 최고/최저 업데이트
+        stock.dayHigh = Math.max(stock.dayHigh, historyEntry.high);
+        stock.dayLow = Math.min(stock.dayLow, historyEntry.low);
+        
+        // 히스토리 제한
+        if (stock.history.length > MAX_HISTORY) {
+          stock.history.shift();
+        }
+      });
+    }
+    
+    // 전체 UI 업데이트
+    function updateUI() {
+      try {
+        renderStocksTable();
+        
+        if (selectedStock) {
+          updateSelectedStockPrice();
+          updateChart();
+          updateTradeSummary();
+        }
+        
+        updatePortfolioDisplay();
+      } catch (error) {
+        console.error('UI 업데이트 오류:', error);
+      }
+    }
+    
+    // ======================================================
+    // 10. 시뮬레이션 초기화 및 시작
+    // ======================================================
+    
+    // 초기 UI 렌더링
+    function initialize() {
+      try {
+        // 초기 UI 렌더링
+        renderStocksTable();
+        updatePortfolioDisplay();
+        
+        // 시작 알림
+        showNotification('주식 모의 트레이딩을 시작합니다. 종목을 선택하고 거래해보세요.', 'info');
+        
+        // 1초마다 주식 가격 업데이트
+        setInterval(() => {
+          updateStockPrices();
+          updateUI();
+        }, SIMULATION_INTERVAL);
+        
+        // 10초마다 뉴스 티커 업데이트
+        setInterval(updateNewsTicker, 10000);
+        updateNewsTicker();
+      } catch (error) {
+        console.error('초기화 오류:', error);
+        showNotification('시스템 초기화 중 오류가 발생했습니다.', 'error');
+      }
+    }
+    
+    // 시뮬레이션 시작
+    initialize();
+</script>
+</body>
+</html>
