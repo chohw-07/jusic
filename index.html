@@ -4114,7 +4114,68 @@ function createChart() {
     showNotification('오류', '차트를 생성하는 중 오류가 발생했습니다.', 'error');
   }
 }
+// 기간에 따라 필터링된 주식 히스토리 가져오기
+function getFilteredHistory() {
+  if (!selectedStock) return [];
+  
+  // 기간에 따라 다른 히스토리 데이터 반환
+  switch (chartPeriod) {
+    case 'day':
+      // 당일 분봉 데이터
+      return selectedStock.intradayHistory;
+    case 'week':
+      // 최근 7일 데이터
+      return selectedStock.yearlyHistory.slice(-7);
+    case 'month':
+      // 최근 30일 데이터
+      return selectedStock.yearlyHistory.slice(-30);
+    case 'year':
+      // 최근 1년 데이터
+      return selectedStock.yearlyHistory;
+    default:
+      return selectedStock.intradayHistory;
+  }
+}
 
+// 차트 업데이트 함수
+function updateChart() {
+  if (!stockChart) return;
+  
+  // 차트 데이터 다시 준비
+  let chartData;
+  if (chartType === 'candlestick') {
+    chartData = prepareCandlestickData();
+  } else {
+    chartData = prepareLineData();
+  }
+  
+  // 이동평균선 추가 (활성화된 경우)
+  if (activeIndicators.includes('ma')) {
+    addMovingAverages(chartData);
+  }
+  
+  // 데이터셋 업데이트
+  stockChart.data.datasets = chartData.datasets;
+  
+  // 차트 업데이트
+  stockChart.update();
+  
+  // 볼륨 차트 있으면 업데이트
+  if (volumeChart && activeIndicators.includes('volume')) {
+    const volumeData = {
+      labels: chartData.datasets[0].data.map(item => item.x),
+      datasets: [{
+        data: getFilteredHistory().map(h => ({
+          x: h.time,
+          y: h.volume
+        }))
+      }]
+    };
+    
+    volumeChart.data = volumeData;
+    volumeChart.update();
+  }
+}
 // 크로스헤어 플러그인 생성
 function createCrosshairPlugin() {
   return {
